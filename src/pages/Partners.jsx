@@ -17,6 +17,8 @@ import PageLoading from '../components/ui/PageLoading';
 import Message from '../components/ui/Message';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import AddPartnerForm from '../components/forms/AddPartnerForm';
+import axios from 'axios'; // Make sure to install axios
+import API_URL from '../constants/const';
 
 const Partners = () => {
   const { isDarkMode } = useDarkMode();
@@ -28,57 +30,47 @@ const Partners = () => {
   const [message, setMessage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRows, setSelectedRows] = useState([]);
-
-  // Initial data
-  const initialPartners = [
-    {
-      id: '#1',
-      name: 'Rwanda Football Federation',
-      discipline: 'Football',
-      legalStatus: 'NGO',
-      business: 'Sports Development',
-      location: {
-        province: 'Kigali City',
-        district: 'Nyarugenge',
-        sector: 'Nyarugenge',
-        cell: 'Nyarugenge',
-        village: 'Nyarugenge'
-      },
-      representative: {
-        name: 'John Doe',
-        gender: 'Male',
-        email: 'john@example.com',
-        phone: '0788123456'
-      },
-      status: 'Active'
-    }
-  ];
-
-  const [partners, setPartners] = useState(initialPartners);
-
-  // Filter configuration
-  const filterConfig = {
-    discipline: ['Football', 'Basketball', 'Handball', 'Volleyball', 'Tennis', 'Other'],
-    legalStatus: ['Company', 'NGO', 'Public Institution', 'Cooperative', 'Other'],
-    status: ['Active', 'Inactive']
-  };
-
-  // Location data (you would typically fetch this from an API)
-  const locationData = {
-    provinces: ['Kigali City', 'Northern Province', 'Southern Province', 'Eastern Province', 'Western Province'],
-    districts: {
-      'Kigali City': ['Nyarugenge', 'Gasabo', 'Kicukiro']
-      // Add other districts
-    }
-    // Add sectors, cells, and villages data
-  };
+  const [partners, setPartners] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPartners = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await axios.get(`${API_URL}partners`, {
+          headers: {
+            'accept': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+
+        const mappedPartners = response.data.map(partner => ({
+          id: `#${partner.id}`, 
+          name: partner.name,
+          discipline: partner.sports_discipline,
+          legalStatus: partner.legal_status,
+          business: partner.business,
+          location: {
+            province: partner.location_province,
+            district: partner.location_district,
+            sector: partner.location_sector,
+            cell: partner.location_cell,
+            village: partner.location_village
+          },
+          representative: {
+            name: partner.legal_representative_name,
+            gender: partner.legal_representative_gender,
+            email: partner.legal_representative_email,
+            phone: partner.legal_representative_phone
+          },
+          status: 'Active', 
+          createdAt: partner.createdAt,
+          updatedAt: partner.updatedAt
+        }));
+
+        setPartners(mappedPartners);
         setIsLoading(false);
       } catch (error) {
+        console.error('Failed to fetch partners:', error);
         setMessage({
           type: 'error',
           text: 'Failed to load partners. Please try again.'
@@ -87,8 +79,22 @@ const Partners = () => {
       }
     };
 
-    fetchData();
+    fetchPartners();
   }, []);
+
+  const filterConfig = {
+    discipline: ['Football', 'Basketball', 'Handball', 'Volleyball', 'Tennis', 'Other'],
+    legalStatus: ['Company', 'NGO', 'Public Institution', 'Cooperative', 'Other'],
+    status: ['Active', 'Inactive']
+  };
+  const locationData = {
+    provinces: ['Kigali City', 'Northern Province', 'Southern Province', 'Eastern Province', 'Western Province'],
+    districts: {
+      'Kigali City': ['Nyarugenge', 'Gasabo', 'Kicukiro']
+      // Add other districts
+    }
+    // Add sectors, cells, and villages data
+  };
 
   const handleAddPartner = async (data) => {
     setIsSubmitting(true);

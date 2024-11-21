@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import { User, Lock, Camera, Mail, Phone, Building, MapPin } from 'lucide-react';
+import axios from '../lib/axios';
 
 const Settings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileData, setProfileData] = useState({
-    firstName: '',
+    name: '',
     lastName: '',
     email: '',
     phone: '',
@@ -22,53 +23,67 @@ const Settings = () => {
     newPassword: '',
     confirmPassword: ''
   });
-
-  // Simulate loading user data
+  
   useEffect(() => {
     const loadUserData = async () => {
+      setIsLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Set profile data
+        const token = localStorage.getItem('token'); // Fetch token from storage
+        if (!token) {
+          throw new Error('User is not logged in');
+        }
+  
+        const response = await axios.get('/me', {
+          headers: {
+            Authorization: `Bearer ${token}` // Include token in request
+          }
+        });
+  
+        // Log the API response to inspect what is returned
+        console.log('API Response:', response);
+  
+        // Extract and log user details
+        const data = response.data;
+        console.log('Logged-in User Details:', data); // Log user details to console
+  
+        // Update profileData state with the user details
         setProfileData({
-          firstName: 'NTARINDWA',
-          lastName: 'Jackson',
-          email: 'jackson.ntarindwa@minisports.gov.rw',
-          phone: '+250788123456',
-          department: 'IT Department',
-          location: 'Kigali, Rwanda',
-          photo: '/profile/profile-pic.png'
+          name: data.name,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          department: data.department,
+          location: data.location,
+          photo: data.photo || '/profile/profile-pic.png',
         });
       } catch (error) {
-        toast.error('Failed to load user data');
+        console.error('Error loading user data:', error.response?.data || error.message);
+        toast.error(`Failed to load user data: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
     };
-
+  
     loadUserData();
   }, []);
+  
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-blue-600 border-b-blue-600 border-l-gray-200 border-r-gray-200 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading settings...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Handle profile update submission
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch(`${API_URL}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(profileData)
+      });
+      if (!response.ok) throw new Error('Failed to update profile');
+      
       toast.success('Profile updated successfully');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -77,10 +92,10 @@ const Settings = () => {
     }
   };
 
+  // Handle password update submission
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate passwords
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('New passwords do not match');
       return;
@@ -94,17 +109,25 @@ const Settings = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch(`${API_URL}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+      if (!response.ok) throw new Error('Failed to change password');
       
-      // Reset form
+      toast.success('Password changed successfully');
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-      
-      toast.success('Password changed successfully');
     } catch (error) {
       toast.error('Failed to change password');
     } finally {
@@ -112,287 +135,76 @@ const Settings = () => {
     }
   };
 
-  const handlePhotoChange = (e) => {
+  // Handle profile photo change
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Handle photo upload
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      try {
+        const response = await fetch(`${API_URL}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+        if (!response.ok) throw new Error('Failed to upload photo');
+
+        const data = await response.json();
         setProfileData(prev => ({
           ...prev,
-          photo: reader.result
+          photo: data.photo
         }));
-      };
-      reader.readAsDataURL(file);
+
+        toast.success('Photo updated successfully');
+      } catch (error) {
+        toast.error('Failed to upload photo');
+      }
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-t-blue-600 border-b-blue-600 border-l-gray-200 border-r-gray-200 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-semibold mb-6">Settings</h1>
-
       <div className="bg-white rounded-lg shadow">
-        {/* Tabs */}
         <div className="border-b">
           <div className="flex space-x-8">
             <button
-              className={`px-4 py-4 focus:outline-none ${
-                activeTab === 'profile'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`px-4 py-4 ${activeTab === 'profile' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('profile')}
             >
               Profile Settings
             </button>
             <button
-              className={`px-4 py-4 focus:outline-none ${
-                activeTab === 'password'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`px-4 py-4 ${activeTab === 'password' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('password')}
             >
               Change Password
             </button>
           </div>
         </div>
-
-        {/* Content */}
         <div className="p-6">
           {activeTab === 'profile' ? (
             <form onSubmit={handleProfileSubmit} className="space-y-6">
-              {/* Profile Photo */}
-              <div className="flex items-center space-x-6">
-                <div className="relative">
-                  <img
-                    src={profileData.photo}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover"
-                  />
-                  <label
-                    htmlFor="photo-upload"
-                    className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-lg cursor-pointer hover:bg-gray-100"
-                  >
-                    <Camera className="h-4 w-4 text-gray-600" />
-                  </label>
-                  <input
-                    id="photo-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
-                </div>
-                <div>
-                  <h3 className="font-medium">Profile Photo</h3>
-                  <p className="text-sm text-gray-500">
-                    JPG, GIF or PNG. Max size of 800K
-                  </p>
-                </div>
-              </div>
-
-              {/* Personal Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      value={profileData.firstName}
-                      onChange={(e) => setProfileData(prev => ({
-                        ...prev,
-                        firstName: e.target.value
-                      }))}
-                      className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      value={profileData.lastName}
-                      onChange={(e) => setProfileData(prev => ({
-                        ...prev,
-                        lastName: e.target.value
-                      }))}
-                      className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData(prev => ({
-                        ...prev,
-                        email: e.target.value
-                      }))}
-                      className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="tel"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData(prev => ({
-                        ...prev,
-                        phone: e.target.value
-                      }))}
-                      className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
-                  </label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      value={profileData.department}
-                      onChange={(e) => setProfileData(prev => ({
-                        ...prev,
-                        department: e.target.value
-                      }))}
-                      className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      value={profileData.location}
-                      onChange={(e) => setProfileData(prev => ({
-                        ...prev,
-                        location: e.target.value
-                      }))}
-                      className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end pt-6 border-t">
-                <Button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
+              {/* Profile Settings Form */}
             </form>
           ) : (
-            <form onSubmit={handlePasswordSubmit} className="max-w-md space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData(prev => ({
-                      ...prev,
-                      currentPassword: e.target.value
-                    }))}
-                    className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({
-                      ...prev,
-                      newPassword: e.target.value
-                    }))}
-                    className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                    minLength={8}
-                  />
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Must be at least 8 characters long
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({
-                      ...prev,
-                      confirmPassword: e.target.value
-                    }))}
-                    className="pl-10 pr-4 py-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end pt-6 border-t">
-                <Button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Changing...' : 'Change Password'}
-                </Button>
-              </div>
+            <form onSubmit={handlePasswordSubmit} className="space-y-6">
+              {/* Password Settings Form */}
             </form>
           )}
         </div>
@@ -401,4 +213,4 @@ const Settings = () => {
   );
 };
 
-export default Settings; 
+export default Settings;

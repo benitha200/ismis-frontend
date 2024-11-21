@@ -3,8 +3,9 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useTheme } from '../context/ThemeContext';
-import { X, Check, Square } from 'lucide-react';
+import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import axiosInstance from '../utils/axiosInstance'; // Import axios instance for API calls
 import { modules } from '../data/modulePermissions';
 
 function AddGroupModal({ isOpen, onClose, onAdd }) {
@@ -59,22 +60,48 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!groupName.trim()) {
       toast.error('Please enter a group name');
       return;
     }
 
-    onAdd({
-      id: Date.now(),
-      name: groupName,
-      permissions: permissions
-    });
+    try {
+      // Prepare the data to send in the POST request
+      const newGroup = {
+        name: groupName,
+        permissions: permissions,
+      };
 
-    setGroupName('');
-    setPermissions({});
-    toast.success('Group added successfully');
+      // Get token from localStorage or auth context
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Session expired. Please log in again.');
+        return;
+      }
+
+      // Send the POST request to the API
+      const response = await axiosInstance.post('/groups', newGroup, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // On success, call the onAdd function to update the UI
+      onAdd(response.data);
+
+      // Reset form fields
+      setGroupName('');
+      setPermissions({});
+
+      toast.success('Group added successfully');
+      onClose(); // Close the modal after successful submission
+    } catch (error) {
+      toast.error('Failed to add group');
+      console.error(error);
+    }
   };
 
   return (
@@ -103,13 +130,13 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={`w-full max-w-4xl transform overflow-hidden rounded-lg ${
-                isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'
-              } p-6 text-left align-middle shadow-xl transition-all`}>
+              <Dialog.Panel
+                className={`w-full max-w-4xl transform overflow-hidden rounded-lg ${
+                  isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'
+                } p-6 text-left align-middle shadow-xl transition-all`}
+              >
                 <div className="flex justify-between items-center mb-6">
-                  <Dialog.Title className="text-xl font-bold">
-                    Add New Group
-                  </Dialog.Title>
+                  <Dialog.Title className="text-xl font-bold">Add New Group</Dialog.Title>
                   <button
                     onClick={onClose}
                     className="text-gray-500 hover:text-gray-700"
@@ -165,10 +192,10 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {modules.map(module => (
+                          {modules.map((module) => (
                             <tr key={module.id} className="hover:bg-gray-50">
                               <td className="px-4 py-2">{module.name}</td>
-                              {module.permissions.map(permission => (
+                              {['Add', 'Edit', 'Delete'].map((permission) => (
                                 <td key={permission} className="px-4 py-2 text-center">
                                   <input
                                     type="checkbox"
@@ -186,11 +213,7 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
                   </div>
 
                   <div className="flex justify-end gap-3 mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onClose}
-                    >
+                    <Button type="button" variant="outline" onClick={onClose}>
                       Cancel
                     </Button>
                     <Button
@@ -210,4 +233,4 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
   );
 }
 
-export default AddGroupModal; 
+export default AddGroupModal;

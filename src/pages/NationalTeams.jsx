@@ -1,4 +1,5 @@
 import React, { useState, Fragment, useEffect } from 'react';
+import axiosInstance from '../utils/axiosInstance';
 import { Plus, Eye, Edit, Trash2, X, Search, AlertTriangle } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Button } from '../components/ui/button';
@@ -17,28 +18,26 @@ function NationalTeams() {
   const [endIndex, setEndIndex] = useState(0);
 
   // Teams state
-  const [teams, setTeams] = useState([
-    {
-      id: '#1',
-      teamName: 'AMAVUBI CAN Qualifier',
-      month: 'MARCH 2021',
-      status: 'Active',
-      federation: 'RWANDA FOOTBALL ASSOCIATION FEDERATION',
-      players: 23
-    }
-  ]);
-
+  const [teams, setTeams] = useState([]);
   // Players state
-  const [players, setPlayers] = useState([
-    {
-      id: 1,
-      name: 'Michel Rusheshangoga',
-      appearances: 0,
-      teamName: 'AMAVUBI CAN Qualifier',
-      federation: 'Rwanda Football Federation (FERWAFA)',
-      club: 'APR FC'
-    }
-  ]);
+  const [players, setPlayers] = useState([]);
+
+  // Fetch initial data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [teamsResponse, playersResponse] = await Promise.all([
+          axiosInstance.get('/national-teams'),
+          axiosInstance.get('/players')
+        ]);
+        setTeams(teamsResponse.data);
+        setPlayers(playersResponse.data);
+      } catch (error) {
+        toast.error('Failed to fetch data');
+      }
+    };
+    fetchData();
+  }, []);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -132,33 +131,34 @@ function NationalTeams() {
   const handleAddTeam = async (data) => {
     try {
       if (selectedTeamData) {
+        const response = await axiosInstance.put(`/national-teams/${selectedTeamData.id}`, data);
         setTeams(prev => prev.map(team => 
-          team.id === selectedTeamData.id ? { ...team, ...data } : team
+          team.id === selectedTeamData.id ? response.data : team
         ));
         toast.success('Team updated successfully');
       } else {
-        const newTeam = {
-          id: `#${teams.length + 1}`,
+        const response = await axiosInstance.post('/national-teams', {
           ...data,
           status: 'Active'
-        };
-        setTeams(prev => [...prev, newTeam]);
+        });
+        setTeams(prev => [...prev, response.data]);
         toast.success('Team added successfully');
       }
       setShowAddModal(false);
       setSelectedTeamData(null);
     } catch (error) {
-      toast.error('Operation failed');
+      toast.error(error.response?.data?.message || 'Operation failed');
     }
   };
 
   const confirmDelete = async () => {
     try {
+      await axiosInstance.delete(`/national-teams/${selectedTeamData.id}`);
       setTeams(prev => prev.filter(team => team.id !== selectedTeamData.id));
       setShowDeleteDialog(false);
       toast.success('Team deleted successfully');
     } catch (error) {
-      toast.error('Failed to delete team');
+      toast.error(error.response?.data?.message || 'Failed to delete team');
     }
   };
 
@@ -235,7 +235,7 @@ function NationalTeams() {
     setIsDeletePlayerModalOpen(true);
   };
 
-  const handleEditPlayerSubmit = (e) => {
+  const handleEditPlayerSubmit = async (e) => {
     e.preventDefault();
     const updatedPlayer = {
       ...selectedPlayer,
@@ -245,17 +245,27 @@ function NationalTeams() {
       games: availableGames
     };
 
-    setPlayers(prev => prev.map(player => 
-      player.id === selectedPlayer.id ? updatedPlayer : player
-    ));
-    setIsEditPlayerModalOpen(false);
-    toast.success('Player updated successfully');
+    try {
+      const response = await axiosInstance.put(`/players/${selectedPlayer.id}`, updatedPlayer);
+      setPlayers(prev => prev.map(player => 
+        player.id === selectedPlayer.id ? response.data : player
+      ));
+      setIsEditPlayerModalOpen(false);
+      toast.success('Player updated successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update player');
+    }
   };
 
-  const handleDeletePlayerConfirm = () => {
-    setPlayers(prev => prev.filter(player => player.id !== selectedPlayer.id));
-    setIsDeletePlayerModalOpen(false);
-    toast.success('Player deleted successfully');
+  const handleDeletePlayerConfirm = async () => {
+    try {
+      await axiosInstance.delete(`/players/${selectedPlayer.id}`);
+      setPlayers(prev => prev.filter(player => player.id !== selectedPlayer.id));
+      setIsDeletePlayerModalOpen(false);
+      toast.success('Player deleted successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete player');
+    }
   };
 
   // Render player details in view modal
@@ -650,11 +660,24 @@ function NationalTeams() {
   };
 
   // Add Player submit handler
-  const handleAddPlayerSubmit = (e) => {
+  const handleAddPlayerSubmit = async (e) => {
     e.preventDefault();
-    // Add your player submission logic here
-    setIsAddPlayerModalOpen(false);
-    toast.success('Player added successfully');
+    const formData = new FormData(e.target);
+    const playerData = {
+      name: formData.get('name'),
+      federation: selectedFederation,
+      teamName: teams.find(t => t.id === selectedTeamForPlayer)?.teamName,
+      club: clubs.find(c => c.id === selectedClub)?.name,
+    };
+
+    try {
+      const response = await axiosInstance.post('/players', playerData);
+      setPlayers(prev => [...prev, response.data]);
+      setIsAddPlayerModalOpen(false);
+      toast.success('Player added successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to add player');
+    }
   };
 
   // Add EditPlayerModal component
@@ -1067,4 +1090,4 @@ function NationalTeams() {
   );
 }
 
-export default NationalTeams; 
+export default NationalTeams;

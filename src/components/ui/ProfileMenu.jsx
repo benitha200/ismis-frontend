@@ -1,49 +1,58 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Settings,
-  LogOut,
-  ChevronRight,
-  Loader2
-} from 'lucide-react';
-import { useDarkMode } from '../../contexts/DarkModeContext';
+import { Settings, LogOut, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from '../../lib/axios'; // Ensure this points to your axios setup
+import { useDarkMode } from '../../contexts/DarkModeContext';
 
 const ProfileMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [user, setUser] = useState(null);
   const menuRef = useRef(null);
   const { isDarkMode } = useDarkMode();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsOpen(false);
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get('users/');
+        console.log('API Response:', response);
+        
+        const userData = response.data.user || response.data || null;
+        if (userData) {
+          setUser(userData);
+        } else {
+          console.error('User data is missing or invalid:', response.data);
+          toast.error('User data could not be loaded. Please log in again.');
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error.response?.data || error.message);
+        toast.error('Failed to load profile. Please log in again.');
+        navigate('/login');
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
+  
+    fetchUser();
+  }, [navigate]);
+   
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
       const loadingToast = toast.loading('Logging out...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await axios.post(`${import.meta.env.VITE_API_URL}`, null, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       toast.dismiss(loadingToast);
       toast.success('Logged out successfully');
-      setTimeout(() => {
-        toast.dismiss();
-        navigate('/landing');
-      }, 500);
+      navigate('/login');
     } catch (error) {
-      toast.dismiss();
+      console.error('Logout error:', error.response?.data || error.message);
       toast.error('Failed to logout. Please try again.');
-      console.error('Logout error:', error);
     } finally {
       setIsLoggingOut(false);
       setIsOpen(false);
@@ -63,8 +72,8 @@ const ProfileMenu = () => {
           <button
             onClick={() => toast.dismiss(t)}
             className={`px-3 py-1 rounded-md text-sm ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+              isDarkMode
+                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -86,9 +95,17 @@ const ProfileMenu = () => {
     });
   };
 
+  if (!user) {
+    return (
+      <div className="flex items-center">
+        <Loader2 className="animate-spin h-6 w-6 text-gray-500" />
+        <span className="ml-2 text-sm text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center" ref={menuRef}>
-      {/* Profile Dropdown */}
       <div className="relative">
         <button 
           onClick={() => setIsOpen(!isOpen)}
@@ -96,14 +113,14 @@ const ProfileMenu = () => {
         >
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
             <img 
-              src="/profile/profile-pic.png"
+              src={user.avatar || '/profile/default-avatar.png'} // Replace with `user.avatar` if available
               alt="Profile" 
               className="w-full h-full rounded-full object-cover"
             />
           </div>
           <div className="flex items-center space-x-2">
             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-              NTARINDWA
+              {user.name}
             </span>
             <ChevronRight className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
           </div>
@@ -152,4 +169,4 @@ const ProfileMenu = () => {
   );
 };
 
-export default ProfileMenu; 
+export default ProfileMenu;

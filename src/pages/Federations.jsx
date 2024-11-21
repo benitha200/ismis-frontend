@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axiosInstance from '../utils/axiosInstance';
 import { 
   Table, 
   TableHeader, 
@@ -101,12 +102,14 @@ const Federations = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await axiosInstance.get('/federations');
+        setFederations(response.data);
+        setFilteredFederations(response.data);
         setIsLoading(false);
       } catch (error) {
         setMessage({
           type: 'error',
-          text: 'Failed to load federations. Please try again.'
+          text: error.response?.data?.message || 'Failed to load federations. Please try again.'
         });
         setIsLoading(false);
       }
@@ -115,11 +118,20 @@ const Federations = () => {
     fetchData();
   }, []);
 
-  const handleAddFederation = (federationData) => {
-    console.log('Adding new federation:', federationData);
-    // Add your federation creation logic here
-    setIsAddFederationModalOpen(false);
-    toast.success('Federation added successfully');
+  const handleAddFederation = async (federationData) => {
+    try {
+      setIsSubmitting(true);
+      await axiosInstance.post('/federations', federationData);
+      const response = await axiosInstance.get('/federations');
+      setFederations(response.data);
+      setFilteredFederations(response.data);
+      setIsAddFederationModalOpen(false);
+      toast.success('Federation added successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to add federation');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEdit = (federation) => {
@@ -234,17 +246,18 @@ const Federations = () => {
   // Add handleEditSubmit function
   const handleEditSubmit = async (updatedData) => {
     try {
-      // Here you would typically make an API call to update the federation
-      const updatedFederations = federations.map(fed => 
-        fed.id === federationToEdit.id ? { ...fed, ...updatedData } : fed
-      );
-      setFederations(updatedFederations);
-      setFilteredFederations(updatedFederations);
+      setIsSubmitting(true);
+      await axiosInstance.put(`/federations/${federationToEdit.id}`, updatedData);
+      const response = await axiosInstance.get('/federations');
+      setFederations(response.data);
+      setFilteredFederations(response.data);
       setEditModalOpen(false);
       setFederationToEdit(null);
       toast.success('Federation updated successfully');
     } catch (error) {
-      toast.error('Failed to update federation');
+      toast.error(error.response?.data?.message || 'Failed to update federation');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -257,29 +270,35 @@ const Federations = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      // Here you would typically make an API call to delete the federation
-      const updatedFederations = federations.filter(fed => fed.id !== federationToDelete.id);
-      setFederations(updatedFederations);
-      setFilteredFederations(updatedFederations);
+      setIsSubmitting(true);
+      await axiosInstance.delete(`/federations/${federationToDelete.id}`);
+      const response = await axiosInstance.get('/federations');
+      setFederations(response.data);
+      setFilteredFederations(response.data);
       setDeleteModalOpen(false);
       setFederationToDelete(null);
       toast.success('Federation deleted successfully');
     } catch (error) {
-      toast.error('Failed to delete federation');
+      toast.error(error.response?.data?.message || 'Failed to delete federation');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleBulkDeleteConfirm = async () => {
     try {
-      // Here you would typically make an API call to delete multiple federations
-      const updatedFederations = federations.filter(fed => !selectedRows.includes(fed.id));
-      setFederations(updatedFederations);
-      setFilteredFederations(updatedFederations);
+      setIsSubmitting(true);
+      await axiosInstance.post('/federations/bulk-delete', { ids: selectedRows });
+      const response = await axiosInstance.get('/federations');
+      setFederations(response.data);
+      setFilteredFederations(response.data);
       setSelectedRows([]);
       setBulkDeleteModalOpen(false);
       toast.success(`${selectedRows.length} federations deleted successfully`);
     } catch (error) {
-      toast.error('Failed to delete federations');
+      toast.error(error.response?.data?.message || 'Failed to delete federations');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1757,4 +1776,4 @@ const Federations = () => {
   );
 };
 
-export default Federations; 
+export default Federations;

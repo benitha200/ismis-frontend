@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from '../lib/axios';
+import axios from '../lib/axios'; // Ensure this axios instance is set up with baseURL and interceptors.
 
 const AuthContext = createContext(null);
 
@@ -17,16 +17,14 @@ export function AuthProvider({ children }) {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        // For now, just set a mock user since we don't have a backend
-        setUser({
-          id: '1',
-          name: 'NTARINDWA',
-          email: 'ntarindwa@example.com',
-          role: 'admin'
-        });
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        const response = await axios.get('/users'); // Replace with the correct endpoint
+        setUser(response.data);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      logout(); // Clear token and reset state if auth check fails
     } finally {
       setLoading(false);
     }
@@ -34,16 +32,19 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     try {
-      // Mock login for now
-      // const response = await axios.post('/auth/login', credentials);
-      // localStorage.setItem('token', response.data.token);
-      localStorage.setItem('token', 'mock-token');
-      setUser({
-        id: '1',
-        name: 'NTARINDWA',
-        email: credentials.email,
-        role: 'admin'
-      });
+      const response = await axios.post('/auth/login', credentials); // Adjust endpoint as needed
+      const { token, user } = response.data;
+
+      // Save token to localStorage
+      localStorage.setItem('token', token);
+
+      // Attach token to axios header for future requests
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Set user state
+      setUser(user);
+
+      // Redirect to the dashboard or homepage
       navigate('/');
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Login failed');
@@ -51,8 +52,12 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    // Clear token and user data
     localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
+
+    // Redirect to login page
     navigate('/login');
   };
 
@@ -60,7 +65,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login,
-    logout
+    logout,
   };
 
   return (
@@ -76,4 +81,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

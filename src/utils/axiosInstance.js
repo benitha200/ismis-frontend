@@ -4,13 +4,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://mis.minisports.gov.rw/a
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 10000, // 10 seconds
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
-// Request interceptor
+// Request interceptor to include Authorization header
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -24,39 +24,34 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor to handle errors globally
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      // Handle specific error status codes
+      // Log or handle specific error codes
       switch (error.response.status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
           localStorage.removeItem('token');
           window.location.href = '/login';
           break;
         case 403:
-          // Forbidden
           console.error('Access forbidden');
           break;
         case 404:
-          // Not found
           console.error('Resource not found');
           break;
         case 500:
-          // Server error
           console.error('Server error');
           break;
         default:
           console.error('An error occurred');
       }
 
-      // Return a more user-friendly error message
       return Promise.reject({
         message: error.response.data.message || 'An error occurred',
         status: error.response.status,
-        data: error.response.data
+        data: error.response.data,
       });
     }
 
@@ -64,15 +59,15 @@ axiosInstance.interceptors.response.use(
       // Network error
       return Promise.reject({
         message: 'Network error. Please check your connection.',
-        status: 0
+        status: 0,
       });
     }
 
     return Promise.reject({
-      message: error.message || 'An error occurred',
-      status: 0
+      message: error.message || 'An unexpected error occurred.',
+      status: 0,
     });
   }
 );
 
-export default axiosInstance; 
+export default axiosInstance;

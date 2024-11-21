@@ -1,32 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import toast from 'react-hot-toast';
+import axiosInstance from '../../utils/axiosInstance'; // Import axiosInstance
 
 const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
   const [formData, setFormData] = useState(initialData || {
     name: '',
     acronym: '',
     yearFounded: '',
-    legalRepresentative: '',
     address: '',
-    // ... other fields
+    website: '',
+    loginEmail: '',
+    loginPassword: '',
+    legalRepresentativeName: '',
+    legalRepresentativeGender: '',
+    legalRepresentativeEmail: '',
+    legalRepresentativePhone: '',
+    logo: null,
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Set the initial form data when `initialData` changes (for editing mode)
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({ ...prev, logo: file }));
+      setFormData((prev) => ({ ...prev, logo: file }));
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
@@ -35,13 +50,14 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setLoading(true);
+
     try {
       // Basic validation
-      if (!formData.name || !formData.acronym || !formData.yearFounded) {
-        throw new Error('Please fill in all required fields');
+      if (!formData.name || !formData.acronym || !formData.yearFounded || !formData.address) {
+        throw new Error('Please fill in all required fields: Name, Acronym, Year Founded, Address');
       }
 
       // Website validation
@@ -51,27 +67,82 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.loginEmail)) {
-        throw new Error('Please enter a valid email address');
+      if (!emailRegex.test(formData.loginEmail) || !emailRegex.test(formData.legalRepresentativeEmail)) {
+        throw new Error('Please enter valid email addresses');
       }
 
-      onSubmit(formData);
+      // Prepare the form data for submission
+      const formDataToSend = new FormData();
+      const keysToSend = [
+        'logo',
+        'name',
+        'acronym',
+        'yearFounded',
+        'address',
+        'website',
+        'loginEmail',
+        'loginPassword',
+        'legalRepresentativeName',
+        'legalRepresentativeGender',
+        'legalRepresentativeEmail',
+        'legalRepresentativePhone',
+      ];
+
+      // Append form fields to FormData
+      keysToSend.forEach((key) => {
+        const value = formData[key];
+        if (value || value === 0 || value === '') {
+          formDataToSend.append(key, value);
+        }
+      });
+
+      // Append the logo file to FormData
+      if (formData.logo) {
+        formDataToSend.append('logo', formData.logo);
+      }
+
+      // Log FormData content for debugging
+      console.log('FormData being sent:');
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      // Define the API URL and HTTP method based on editing mode
+      const apiUrl = isEditing
+        ? `/federations/${formData.id}` // Use the federation ID for PUT requests
+        : '/federations'; // POST request for new federation
+
+      const method = isEditing ? 'put' : 'post';
+
+      // Make API request to the backend
+      const response = await axiosInstance[method](apiUrl, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data', // This is necessary for file uploads
+        },
+      });
+
+      toast.success(isEditing ? 'Federation updated successfully!' : 'Federation added successfully!');
+      onSubmit(response.data);
+      onCancel();
     } catch (error) {
-      toast.error(error.message);
+      console.error('API Error:', error);
+      toast.error(error.response?.data?.message || error.message || 'An error occurred while processing the request.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-4">
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
         {/* Logo Upload */}
         <div>
           <label className="block text-sm font-medium mb-2">Logo</label>
           <div className="flex items-center gap-4">
             {previewUrl && (
-              <img 
-                src={previewUrl} 
-                alt="Preview" 
+              <img
+                src={previewUrl}
+                alt="Preview"
                 className="w-20 h-20 object-cover rounded-lg"
               />
             )}
@@ -140,7 +211,7 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
               name="website"
               value={formData.website}
               onChange={handleChange}
-              placeholder="eg. www.google.com"
+              placeholder="e.g., http://www.example.com"
             />
           </div>
           <div>
@@ -172,8 +243,8 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
             <label className="block text-sm font-medium mb-1">Legal Representative Name</label>
             <Input
               type="text"
-              name="legalRepName"
-              value={formData.legalRepName}
+              name="legalRepresentativeName"
+              value={formData.legalRepresentativeName}
               onChange={handleChange}
               required
             />
@@ -181,8 +252,8 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
           <div>
             <label className="block text-sm font-medium mb-1">Legal Representative Gender</label>
             <select
-              name="legalRepGender"
-              value={formData.legalRepGender}
+              name="legalRepresentativeGender"
+              value={formData.legalRepresentativeGender}
               onChange={handleChange}
               required
               className="w-full border rounded-lg p-2"
@@ -193,14 +264,13 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
             </select>
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Legal Representative Email</label>
             <Input
               type="email"
-              name="legalRepEmail"
-              value={formData.legalRepEmail}
+              name="legalRepresentativeEmail"
+              value={formData.legalRepresentativeEmail}
               onChange={handleChange}
               required
             />
@@ -208,16 +278,17 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
           <div>
             <label className="block text-sm font-medium mb-1">Legal Representative Phone</label>
             <Input
+
               type="tel"
-              name="legalRepPhone"
-              value={formData.legalRepPhone}
+              name="legalRepresentativePhone"
+              value={formData.legalRepresentativePhone}
               onChange={handleChange}
               required
             />
           </div>
         </div>
 
-        {/* Form Actions - Make it sticky at the bottom */}
+        {/* Form Actions */}
         <div className="sticky bottom-0 bg-white pt-4 mt-6 border-t flex justify-end gap-4">
           <Button
             type="button"
@@ -229,8 +300,9 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
           <Button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={loading}
           >
-            {isEditing ? 'Update Federation' : 'Add Federation'}
+            {loading ? 'Submitting...' : (isEditing ? 'Update Federation' : 'Add Federation')}
           </Button>
         </div>
       </form>
@@ -238,4 +310,4 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
   );
 };
 
-export default AddFederationForm; 
+export default AddFederationForm;

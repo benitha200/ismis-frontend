@@ -1,279 +1,249 @@
-import React, { useState } from 'react';
-import { useDarkMode } from '../../contexts/DarkModeContext';
+import React, { useState, useEffect } from 'react';
+import { Button } from '../ui/button';
+import { toast } from 'react-hot-toast';
+import axiosInstance from '../../utils/axiosInstance';
 
-const AddClubForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
-  const { isDarkMode } = useDarkMode();
-  const [formData, setFormData] = useState({
-    logo: initialData?.logo || null,
-    federation: initialData?.federation || '',
-    name: initialData?.name || '',
-    yearFounded: initialData?.yearFounded || '',
-    address: initialData?.address || '',
-    division: initialData?.division || '',
-    legalRepresentative: {
-      name: initialData?.legalRepresentative?.name || '',
-      gender: initialData?.legalRepresentative?.gender || '',
-      email: initialData?.legalRepresentative?.email || '',
-      phone: initialData?.legalRepresentative?.phone || ''
+const AddClubForm = ({ isOpen, onClose }) => {
+  const [name, setName] = useState('');
+  const [federationId, setFederationId] = useState(0);
+  const [yearFounded, setYearFounded] = useState(0); // Use yearFounded instead of year
+  const [logo, setLogo] = useState('');
+  const [address, setAddress] = useState('');
+  const [division, setDivision] = useState('');
+  const [legalRepresentativeName, setLegalRepresentativeName] = useState('');
+  const [legalRepresentativeGender, setLegalRepresentativeGender] = useState('Male');
+  const [legalRepresentativeEmail, setLegalRepresentativeEmail] = useState('');
+  const [legalRepresentativePhone, setLegalRepresentativePhone] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [federations, setFederations] = useState([]);
+  const [isLoadingFederations, setIsLoadingFederations] = useState(true);
+
+  // Fetch federations from the API
+  useEffect(() => {
+    const fetchFederations = async () => {
+      try {
+        const response = await axiosInstance.get('/federations');
+        setFederations(response.data);
+      } catch (err) {
+        toast.error('Failed to load federations');
+      } finally {
+        setIsLoadingFederations(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchFederations();
     }
-  });
+  }, [isOpen]);
 
-  const handleChange = (e) => {
-    const { name, value, type, files } = e.target;
-    if (type === 'file') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: files[0]
-      }));
-    } else if (name.includes('.')) {
-      const [section, field] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    setIsSubmitting(true);
+
+    // Construct form data as JSON
+    const formData = {
+      logo: logo,
+      federationId: federationId,
+      name: name,
+      yearFounded: yearFounded,
+      address: address,
+      division: division,
+      legalRepresentativeName: legalRepresentativeName,
+      legalRepresentativeGender: legalRepresentativeGender,
+      legalRepresentativeEmail: legalRepresentativeEmail,
+      legalRepresentativePhone: legalRepresentativePhone,
+    };
+
+    console.log('Submitted Form Data:', formData);
+
+    try {
+      // Send data as JSON (not FormData)
+      const response = await axiosInstance.post('/clubs', formData, {
+        headers: {
+          'Content-Type': 'application/json', // Ensure the server understands it’s JSON data
+        },
+      });
+
+      toast.success('Club added successfully');
+      onClose(); // Close the modal
+    } catch (err) {
+      toast.error('Failed to add club');
+      console.error(err);  // Log the error to see more details
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const inputClasses = `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-    isDarkMode 
-      ? 'bg-gray-800 border-gray-700 text-gray-200' 
-      : 'bg-white border-gray-300 text-gray-900'
-  }`;
-
-  const labelClasses = `block text-sm font-medium mb-1 ${
-    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-  }`;
-
-  // Federation options
-  const federations = [
-    'Rwanda Football Federation (FERWAFA)',
-    'Rwanda Basketball Federation (FERWABA)',
-    'Rwanda Volleyball Federation (FRVB)',
-    'Rwanda Athletics Federation (RAF)'
-  ];
-
-  // Division options
-  const divisions = [
-    'Premier League',
-    'Division 1',
-    'Division 2',
-    'Women League'
-  ];
+  // Close the modal
+  if (!isOpen) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Club Logo */}
-      <div>
-        <label htmlFor="logo" className={labelClasses}>Club Logo</label>
-        <input
-          type="file"
-          id="logo"
-          name="logo"
-          accept="image/*"
-          onChange={handleChange}
-          className={inputClasses}
-        />
-        {formData.logo && (
-          <div className="mt-2">
-            <img
-              src={URL.createObjectURL(formData.logo)}
-              alt="Club Logo Preview"
-              className="h-20 w-20 object-contain"
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
+      <div className="bg-white p-6 rounded-lg shadow-md max-w-lg w-full overflow-y-auto" style={{ maxHeight: '90vh' }}>
+        <h2 className="text-xl font-semibold mb-4">Add New Club</h2>
+
+        <form onSubmit={handleSubmit}>
+          {/* Club Name */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Club Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+              placeholder="Enter club name"
             />
           </div>
-        )}
+
+          {/* Federation */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Federation</label>
+            <select
+              value={federationId}
+              onChange={(e) => setFederationId(Number(e.target.value))}
+              required
+              className="w-full p-2 border rounded"
+              disabled={isLoadingFederations}
+            >
+              <option value={0}>Select Federation</option>
+              {isLoadingFederations ? (
+                <option disabled>Loading federations...</option>
+              ) : (
+                federations.map((federation) => (
+                  <option key={federation.id} value={federation.id}>
+                    {federation.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* Year Founded */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Year Founded</label>
+            <select
+              value={yearFounded}
+              onChange={(e) => setYearFounded(Number(e.target.value))}
+              required
+              className="w-full p-2 border rounded"
+            >
+              <option value={0}>Select Year</option>
+              {[...Array(10)].map((_, idx) => {
+                const optionYear = 2020 + idx;
+                return (
+                  <option key={optionYear} value={optionYear}>
+                    {optionYear}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Logo URL */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Logo URL</label>
+            <input
+              type="text"
+              value={logo}
+              onChange={(e) => setLogo(e.target.value)}
+              className="w-full p-2 border rounded"
+              placeholder="Enter logo URL"
+            />
+          </div>
+
+          {/* Address */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Address</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+              placeholder="Enter address"
+            />
+          </div>
+
+          {/* Division */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Division</label>
+            <input
+              type="text"
+              value={division}
+              onChange={(e) => setDivision(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+              placeholder="Enter division"
+            />
+          </div>
+
+          {/* Legal Representative Name */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Legal Representative Name</label>
+            <input
+              type="text"
+              value={legalRepresentativeName}
+              onChange={(e) => setLegalRepresentativeName(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+              placeholder="Enter legal representative's name"
+            />
+          </div>
+
+          {/* Legal Representative Gender */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Legal Representative Gender</label>
+            <select
+              value={legalRepresentativeGender}
+              onChange={(e) => setLegalRepresentativeGender(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* Legal Representative Email */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Legal Representative Email</label>
+            <input
+              type="email"
+              value={legalRepresentativeEmail}
+              onChange={(e) => setLegalRepresentativeEmail(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+              placeholder="Enter legal representative's email"
+            />
+          </div>
+
+          {/* Legal Representative Phone */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Legal Representative Phone</label>
+            <input
+              type="tel"
+              value={legalRepresentativePhone}
+              onChange={(e) => setLegalRepresentativePhone(e.target.value)}
+              required
+              className="w-full p-2 border rounded"
+              placeholder="Enter legal representative's phone"
+            />
+          </div>
+
+          {/* Submit and Cancel Buttons */}
+          <div className="flex justify-end">
+            <Button onClick={onClose} type="button" className="mr-2">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              Submit
+            </Button>
+          </div>
+        </form>
       </div>
-
-      {/* Federation Selection */}
-      <div>
-        <label htmlFor="federation" className={labelClasses}>Select Federation</label>
-        <select
-          id="federation"
-          name="federation"
-          value={formData.federation}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        >
-          <option value="">Select Federation</option>
-          {federations.map(federation => (
-            <option key={federation} value={federation}>
-              {federation}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Club Name */}
-      <div>
-        <label htmlFor="name" className={labelClasses}>Club Name</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        />
-      </div>
-
-      {/* Year Founded */}
-      <div>
-        <label htmlFor="yearFounded" className={labelClasses}>Year Founded</label>
-        <input
-          type="number"
-          id="yearFounded"
-          name="yearFounded"
-          value={formData.yearFounded}
-          onChange={handleChange}
-          className={inputClasses}
-          min="1900"
-          max={new Date().getFullYear()}
-          required
-        />
-      </div>
-
-      {/* Address */}
-      <div>
-        <label htmlFor="address" className={labelClasses}>Address</label>
-        <input
-          type="text"
-          id="address"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        />
-      </div>
-
-      {/* Division */}
-      <div>
-        <label htmlFor="division" className={labelClasses}>Division</label>
-        <select
-          id="division"
-          name="division"
-          value={formData.division}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        >
-          <option value="">Select Division</option>
-          {divisions.map(division => (
-            <option key={division} value={division}>
-              {division}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Legal Representative Information */}
-      <div className="space-y-4">
-        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-          Legal Representative Information
-        </h3>
-
-        <div>
-          <label htmlFor="legalRepresentative.name" className={labelClasses}>Legal Representative Name</label>
-          <input
-            type="text"
-            id="legalRepresentative.name"
-            name="legalRepresentative.name"
-            value={formData.legalRepresentative.name}
-            onChange={handleChange}
-            className={inputClasses}
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="legalRepresentative.gender" className={labelClasses}>Legal Representative Gender</label>
-          <select
-            id="legalRepresentative.gender"
-            name="legalRepresentative.gender"
-            value={formData.legalRepresentative.gender}
-            onChange={handleChange}
-            className={inputClasses}
-            required
-          >
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="legalRepresentative.email" className={labelClasses}>Legal Representative Email</label>
-          <input
-            type="email"
-            id="legalRepresentative.email"
-            name="legalRepresentative.email"
-            value={formData.legalRepresentative.email}
-            onChange={handleChange}
-            className={inputClasses}
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="legalRepresentative.phone" className={labelClasses}>Legal Representative Phone</label>
-          <input
-            type="tel"
-            id="legalRepresentative.phone"
-            name="legalRepresentative.phone"
-            value={formData.legalRepresentative.phone}
-            onChange={handleChange}
-            className={inputClasses}
-            required
-          />
-        </div>
-      </div>
-
-      {/* Form Actions */}
-      <div className="flex justify-end space-x-4 mt-6">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className={`px-4 py-2 rounded-lg ${
-            isDarkMode 
-              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          } disabled:opacity-50`}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
-        >
-          {isSubmitting ? (
-            <>
-              <span className="animate-spin">⌛</span>
-              <span>Saving...</span>
-            </>
-          ) : (
-            <span>Save Club</span>
-          )}
-        </button>
-      </div>
-    </form>
+    </div>
   );
 };
 
-export default AddClubForm; 
+export default AddClubForm;

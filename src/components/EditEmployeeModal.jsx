@@ -1,4 +1,4 @@
-import React, { useState, Fragment, useEffect } from 'react';
+import React, { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Button } from './ui/button';
 import { X } from 'lucide-react';
@@ -39,7 +39,7 @@ function EditEmployeeModal({ isOpen, onClose, onEdit, employeeData }) {
               } p-6 text-left align-middle shadow-xl transition-all`}>
                 <div className="flex justify-between items-center mb-6">
                   <Dialog.Title className="text-xl font-bold">
-                    Edit Employee: {employeeData?.names}
+                    Edit Employee: {employeeData?.firstname} {employeeData?.lastname}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
@@ -49,14 +49,15 @@ function EditEmployeeModal({ isOpen, onClose, onEdit, employeeData }) {
                   </button>
                 </div>
 
+                {/* AddEmployeeForm Component */}
                 <AddEmployeeForm 
                   onSubmit={(data) => {
-                    onEdit({ id: employeeData.id, ...data });
-                    onClose();
+                    onEdit({ id: employeeData.id, ...data }); // Passing the id along with the updated data
+                    onClose(); // Close the modal after the edit
                   }}
-                  onCancel={onClose}
-                  initialData={employeeData}
-                  isEditing={true}
+                  onCancel={onClose} // onCancel should also close the modal
+                  initialData={employeeData} // Initialize form with existing employee data
+                  isEditing={true} // Flag to indicate that we're in editing mode
                 />
               </Dialog.Panel>
             </Transition.Child>
@@ -67,4 +68,4 @@ function EditEmployeeModal({ isOpen, onClose, onEdit, employeeData }) {
   );
 }
 
-export default EditEmployeeModal; 
+export default EditEmployeeModal;

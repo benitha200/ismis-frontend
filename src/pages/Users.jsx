@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Loader2, Edit } from 'lucide-react';
+import { Loader2, Edit, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AddUserModal from '../components/AddUserModal';
 import EditUserModal from '../components/EditUserModal'; 
 import ManageGroups from './ManageGroups';
 import axiosInstance from '../utils/axiosInstance';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'; // Assuming Dialog component exists
 
 function Users() {
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,7 @@ function Users() {
   const [searchName, setSearchName] = useState(''); 
   const [searchGroup, setSearchGroup] = useState(''); 
   const [searchStatus, setSearchStatus] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);  // State for delete modal
   const navigate = useNavigate();
 
   // Get the group name based on the groupId
@@ -88,6 +90,36 @@ function Users() {
   const handleEditUser = (user) => {
     setSelectedUser(user); 
     setIsEditModalOpen(true); 
+  };
+
+  // Handle Delete User Modal
+  const handleDeleteUser = (user) => {
+    setSelectedUser(user); 
+    setDeleteModalOpen(true); // Open the delete confirmation modal
+  };
+
+  // Handle Delete Confirmation
+  const handleDeleteConfirm = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Session expired. Please log in again.');
+        navigate('/login');
+        return;
+      }
+
+      await axiosInstance.delete(`/users/${selectedUser.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // After deleting, refresh the user list
+      fetchData();
+      toast.success('User deleted successfully!');
+    } catch (err) {
+      toast.error('Failed to delete user. Please try again.');
+    } finally {
+      setDeleteModalOpen(false);  // Close the delete confirmation modal
+    }
   };
 
   // Clear all filters
@@ -219,6 +251,14 @@ function Users() {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteUser(user)}
+                      >
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -250,6 +290,36 @@ function Users() {
         onEdit={() => fetchData()}
         userData={selectedUser}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="py-4">
+              Are you sure you want to delete <span className="font-semibold">{selectedUser?.name}</span>?
+              This action cannot be undone and will remove all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Delete User
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

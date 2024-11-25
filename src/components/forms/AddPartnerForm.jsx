@@ -1,263 +1,279 @@
-import React from 'react';
-import { useDarkMode } from '../../contexts/DarkModeContext';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import axiosInstance from '../../utils/axiosInstance'; // Import your custom axios instance
 
-const AddPartnerForm = ({ initialData, onSubmit, onCancel, isSubmitting, locationData }) => {
-  const { isDarkMode } = useDarkMode();
-  const [formData, setFormData] = React.useState({
-    name: initialData?.name || '',
-    discipline: initialData?.discipline || '',
-    legalStatus: initialData?.legalStatus || '',
-    business: initialData?.business || '',
-    location: {
-      province: initialData?.location?.province || '',
-      district: initialData?.location?.district || '',
-      sector: initialData?.location?.sector || '',
-      cell: initialData?.location?.cell || '',
-      village: initialData?.location?.village || ''
-    },
-    representative: {
-      name: initialData?.representative?.name || '',
-      gender: initialData?.representative?.gender || '',
-      email: initialData?.representative?.email || '',
-      phone: initialData?.representative?.phone || ''
-    }
+const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    sports_discipline: '',
+    legal_status: '',
+    business: '',
+    location_province: '',
+    location_district: '',
+    location_sector: '',
+    location_cell: '',
+    location_village: '',
+    legal_representative_name: '',
+    legal_representative_gender: '',
+    legal_representative_email: '',
+    legal_representative_phone: '',
+    createdAt: '',
+    updatedAt: '',
   });
+
+  // If initialData is passed (edit mode), update formData state
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        sports_discipline: initialData.sports_discipline || '',
+        legal_status: initialData.legal_status || '',
+        business: initialData.business || '',
+        location_province: initialData.location_province || '',
+        location_district: initialData.location_district || '',
+        location_sector: initialData.location_sector || '',
+        location_cell: initialData.location_cell || '',
+        location_village: initialData.location_village || '',
+        legal_representative_name: initialData.legal_representative_name || '',
+        legal_representative_gender: initialData.legal_representative_gender || '',
+        legal_representative_email: initialData.legal_representative_email || '',
+        legal_representative_phone: initialData.legal_representative_phone || '',
+        createdAt: initialData.createdAt || '',
+        updatedAt: initialData.updatedAt || '',
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.includes('.')) {
-      const [section, field] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value
-        }
-      }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    const payload = {
+      ...formData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // If we're editing, we don't want to include createdAt (or use initial createdAt)
+    if (initialData) {
+      delete payload.createdAt;
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      // For adding a new partner, ensure createdAt is included
+      payload.createdAt = new Date().toISOString();
+    }
+  
+    try {
+      let response;
+      if (initialData) {
+        // Edit existing partner: Use PUT for updates
+        response = await axiosInstance.put(`/partners/${initialData.id}`, payload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        toast.success('Data updated successfully!');
+      } else {
+        // Add new partner: Use POST for creating a new entry
+        response = await axiosInstance.post('/partners', payload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        toast.success('Data submitted successfully!');
+      }
+      onSubmit(response.data); // Return the response data to parent
+    } catch (error) {
+      if (error.response) {
+        console.error('Error response:', error.response);
+        toast.error(`Error: ${error.response.data.message || 'An error occurred'}`);
+      } else {
+        console.error('Error:', error);
+        toast.error('There was an error submitting the form.');
+      }
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  const inputClasses = `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-    isDarkMode 
-      ? 'bg-gray-800 border-gray-700 text-gray-200' 
-      : 'bg-white border-gray-300 text-gray-900'
-  }`;
-
-  const labelClasses = `block text-sm font-medium mb-1 ${
-    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-  }`;
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Partner Name */}
-      <div>
-        <label htmlFor="name" className={labelClasses}>Partner Name</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        />
-      </div>
-
-      {/* Sports Discipline */}
-      <div>
-        <label htmlFor="discipline" className={labelClasses}>Sports Discipline</label>
-        <select
-          id="discipline"
-          name="discipline"
-          value={formData.discipline}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        >
-          <option value="">Select Discipline</option>
-          <option value="Football">Football</option>
-          <option value="Basketball">Basketball</option>
-          <option value="Handball">Handball</option>
-          <option value="Volleyball">Volleyball</option>
-          <option value="Tennis">Tennis</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-
-      {/* Legal Status */}
-      <div>
-        <label htmlFor="legalStatus" className={labelClasses}>Legal Status</label>
-        <select
-          id="legalStatus"
-          name="legalStatus"
-          value={formData.legalStatus}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        >
-          <option value="">Select Status</option>
-          <option value="Company">Company</option>
-          <option value="NGO">NGO</option>
-          <option value="Public Institution">Public Institution</option>
-          <option value="Cooperative">Cooperative</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-
-      {/* Business/Intervention */}
-      <div>
-        <label htmlFor="business" className={labelClasses}>Business / Intervention</label>
-        <input
-          type="text"
-          id="business"
-          name="business"
-          value={formData.business}
-          onChange={handleChange}
-          className={inputClasses}
-          required
-        />
-      </div>
-
-      {/* Location */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Province */}
+    <div className="max-h-[80vh] overflow-y-auto p-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Club Name */}
         <div>
-          <label htmlFor="location.province" className={labelClasses}>Province</label>
-          <select
-            id="location.province"
-            name="location.province"
-            value={formData.location.province}
-            onChange={handleChange}
-            className={inputClasses}
-            required
-          >
-            <option value="">Select Province</option>
-            {locationData?.provinces?.map(province => (
-              <option key={province} value={province}>{province}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* District */}
-        <div>
-          <label htmlFor="location.district" className={labelClasses}>District</label>
-          <select
-            id="location.district"
-            name="location.district"
-            value={formData.location.district}
-            onChange={handleChange}
-            className={inputClasses}
-            required
-          >
-            <option value="">Select District</option>
-            {locationData?.districts[formData.location.province]?.map(district => (
-              <option key={district} value={district}>{district}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Add other location fields similarly */}
-      </div>
-
-      {/* Legal Representative Information */}
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="representative.name" className={labelClasses}>Legal Representative Name</label>
+          <label>Club Name</label>
           <input
             type="text"
-            id="representative.name"
-            name="representative.name"
-            value={formData.representative.name}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
-            className={inputClasses}
             required
+            className="w-full border rounded"
           />
         </div>
-
+        {/* Sports Discipline */}
         <div>
-          <label htmlFor="representative.gender" className={labelClasses}>Legal Representative Gender</label>
-          <select
-            id="representative.gender"
-            name="representative.gender"
-            value={formData.representative.gender}
+          <label>Sports Discipline</label>
+          <input
+            type="text"
+            name="sports_discipline"
+            value={formData.sports_discipline}
             onChange={handleChange}
-            className={inputClasses}
             required
-          >
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
+            className="w-full border rounded"
+          />
         </div>
-
+        {/* Legal Status */}
         <div>
-          <label htmlFor="representative.email" className={labelClasses}>Legal Representative Email</label>
+          <label>Legal Status</label>
+          <input
+            type="text"
+            name="legal_status"
+            value={formData.legal_status}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Business */}
+        <div>
+          <label>Business</label>
+          <input
+            type="text"
+            name="business"
+            value={formData.business}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Location Province */}
+        <div>
+          <label>Location Province</label>
+          <input
+            type="text"
+            name="location_province"
+            value={formData.location_province}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Location District */}
+        <div>
+          <label>Location District</label>
+          <input
+            type="text"
+            name="location_district"
+            value={formData.location_district}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Location Sector */}
+        <div>
+          <label>Location Sector</label>
+          <input
+            type="text"
+            name="location_sector"
+            value={formData.location_sector}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Location Cell */}
+        <div>
+          <label>Location Cell</label>
+          <input
+            type="text"
+            name="location_cell"
+            value={formData.location_cell}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Location Village */}
+        <div>
+          <label>Location Village</label>
+          <input
+            type="text"
+            name="location_village"
+            value={formData.location_village}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Legal Representative Name */}
+        <div>
+          <label>Legal Representative Name</label>
+          <input
+            type="text"
+            name="legal_representative_name"
+            value={formData.legal_representative_name}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Legal Representative Gender */}
+        <div>
+          <label>Legal Representative Gender</label>
+          <input
+            type="text"
+            name="legal_representative_gender"
+            value={formData.legal_representative_gender}
+            onChange={handleChange}
+            required
+            className="w-full border rounded"
+          />
+        </div>
+        {/* Legal Representative Email */}
+        <div>
+          <label>Legal Representative Email</label>
           <input
             type="email"
-            id="representative.email"
-            name="representative.email"
-            value={formData.representative.email}
+            name="legal_representative_email"
+            value={formData.legal_representative_email}
             onChange={handleChange}
-            className={inputClasses}
             required
+            className="w-full border rounded"
           />
         </div>
-
+        {/* Legal Representative Phone */}
         <div>
-          <label htmlFor="representative.phone" className={labelClasses}>Legal Representative Phone</label>
+          <label>Legal Representative Phone</label>
           <input
             type="tel"
-            id="representative.phone"
-            name="representative.phone"
-            value={formData.representative.phone}
+            name="legal_representative_phone"
+            value={formData.legal_representative_phone}
             onChange={handleChange}
-            className={inputClasses}
             required
+            className="w-full border rounded"
           />
         </div>
-      </div>
-
-      {/* Form Actions */}
-      <div className="flex justify-end space-x-4 mt-6">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className={`px-4 py-2 rounded-lg ${
-            isDarkMode 
-              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          } disabled:opacity-50`}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
-        >
-          {isSubmitting ? (
-            <>
-              <span className="animate-spin">⌛</span>
-              <span>Saving...</span>
-            </>
-          ) : (
-            <span>Save Partner</span>
-          )}
-        </button>
-      </div>
-    </form>
+        {/* Submit / Cancel Buttons */}
+        <div className="flex justify-end space-x-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-gray-300 px-4 py-2 rounded"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            {isSubmitting ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 
-export default AddPartnerForm; 
+export default AddSportForm;

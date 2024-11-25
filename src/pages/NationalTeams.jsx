@@ -28,7 +28,7 @@ function NationalTeams() {
       try {
         const [teamsResponse, playersResponse] = await Promise.all([
           axiosInstance.get('/national-teams'),
-          axiosInstance.get('/players')
+          axiosInstance.get('/national-team-player-staff')
         ]);
         setTeams(teamsResponse.data);
         setPlayers(playersResponse.data);

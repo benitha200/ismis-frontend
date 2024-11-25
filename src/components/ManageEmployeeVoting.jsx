@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Eye, Download, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Eye, Download, Trash2, X } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import toast from 'react-hot-toast';
+import * as employeeVotingService from '../services/employeeVoting';
 
 function ManageEmployeeVoting() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,107 +12,20 @@ function ManageEmployeeVoting() {
   const [votingToDelete, setVotingToDelete] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedVoting, setSelectedVoting] = useState(null);
-
-  // Add voting results state
-  const [votingResults, setVotingResults] = useState({
-    1: { // voting ID
-      candidates: {
-        1: { // candidate ID
-          votes: [
-            { criteriaId: 1, points: 8 },
-            { criteriaId: 2, points: 7 },
-            // ... other criteria points
-          ],
-          totalPoints: 0
-        },
-        2: {
-          votes: [
-            { criteriaId: 1, points: 9 },
-            { criteriaId: 2, points: 8 },
-          ],
-          totalPoints: 0
-        },
-        // ... other candidates
+  const [votingData, setVotingData] = useState([]);
+  
+  // Fetch voting records on component mount
+  useEffect(() => {
+    const fetchVotingData = async () => {
+      try {
+        const records = await employeeVotingService.fetchVotingRecords();
+        setVotingData(records);
+      } catch (error) {
+        toast.error('Failed to load voting records');
       }
-    }
-  });
-
-  // Function to calculate winners
-  const calculateWinners = (votingId) => {
-    const votingSession = votingResults[votingId];
-    if (!votingSession) return { winner: null, runnerUp: null };
-
-    // Calculate total points for each candidate
-    const candidateScores = Object.entries(votingSession.candidates).map(([candidateId, data]) => {
-      const totalPoints = data.votes.reduce((sum, vote) => sum + vote.points, 0);
-      return {
-        candidateId,
-        totalPoints
-      };
-    });
-
-    // Sort by total points in descending order
-    candidateScores.sort((a, b) => b.totalPoints - a.totalPoints);
-
-    // Get winner and runner-up
-    const [winner, runnerUp] = candidateScores;
-
-    return {
-      winner: winner ? findCandidateById(winner.candidateId) : null,
-      runnerUp: runnerUp ? findCandidateById(runnerUp.candidateId) : null
     };
-  };
-
-  // Helper function to find candidate details
-  const findCandidateById = (candidateId) => {
-    // This would typically come from your candidates data
-    const candidates = {
-      1: { name: 'MUREKATETE Adrie' },
-      2: { name: 'BIMENYIMANA Adrien' },
-      // ... other candidates
-    };
-    return candidates[candidateId];
-  };
-
-  // Update mock voting data to include calculated winners
-  const [votingData, setVotingData] = useState([
-    {
-      id: 1,
-      year: '2023 - 2024',
-      period: {
-        fromDate: '2023-12-01',
-        toDate: '2023-12-31'
-      },
-      totalCandidates: 25,
-      totalVotes: 150,
-      status: 'Active',
-      get winners() {
-        const result = calculateWinners(this.id);
-        return {
-          winner: result.winner?.name || 'Pending',
-          runnerUp: result.runnerUp?.name || 'Pending'
-        };
-      }
-    },
-    {
-      id: 2,
-      year: '2022 - 2023',
-      period: {
-        fromDate: '2022-12-01',
-        toDate: '2022-12-31'
-      },
-      totalCandidates: 20,
-      totalVotes: 130,
-      status: 'Completed',
-      get winners() {
-        const result = calculateWinners(this.id);
-        return {
-          winner: result.winner?.name || 'Pending',
-          runnerUp: result.runnerUp?.name || 'Pending'
-        };
-      }
-    }
-  ]);
+    fetchVotingData();
+  }, []);
 
   // Filter data based on search
   const filteredData = votingData.filter(voting =>
@@ -127,16 +41,26 @@ function ManageEmployeeVoting() {
   };
 
   // Handle delete confirm
-  const handleDeleteConfirm = () => {
-    setVotingData(prev => prev.filter(v => v.id !== votingToDelete.id));
-    setIsDeleteModalOpen(false);
-    toast.success('Voting record deleted successfully');
+  const handleDeleteConfirm = async () => {
+    try {
+      await employeeVotingService.deleteVotingRecord(votingToDelete.id);
+      setVotingData(prev => prev.filter(v => v.id !== votingToDelete.id));
+      setIsDeleteModalOpen(false);
+      toast.success('Voting record deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete voting record');
+    }
   };
 
   // Handle view
-  const handleView = (voting) => {
-    setSelectedVoting(voting);
-    setIsViewModalOpen(true);
+  const handleView = async (voting) => {
+    try {
+      const details = await employeeVotingService.fetchVotingDetails(voting.id);
+      setSelectedVoting(details);
+      setIsViewModalOpen(true);
+    } catch (error) {
+      toast.error('Failed to load voting details');
+    }
   };
 
   // Handle download
@@ -145,23 +69,13 @@ function ManageEmployeeVoting() {
   };
 
   // Add function to record a vote
-  const recordVote = (votingId, candidateId, criteriaId, points) => {
-    setVotingResults(prev => ({
-      ...prev,
-      [votingId]: {
-        ...prev[votingId],
-        candidates: {
-          ...prev[votingId].candidates,
-          [candidateId]: {
-            ...prev[votingId].candidates[candidateId],
-            votes: [
-              ...prev[votingId].candidates[candidateId].votes.filter(v => v.criteriaId !== criteriaId),
-              { criteriaId, points }
-            ]
-          }
-        }
-      }
-    }));
+  const recordVote = async (votingId, candidateId, criteriaId, points) => {
+    try {
+      await employeeVotingService.recordVote(votingId, candidateId, criteriaId, points);
+      toast.success('Vote recorded successfully');
+    } catch (error) {
+      toast.error('Failed to record vote');
+    }
   };
 
   return (
@@ -247,7 +161,7 @@ function ManageEmployeeVoting() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="destructive"
+                      variant="outline"
                       onClick={() => handleDelete(voting)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
@@ -261,174 +175,105 @@ function ManageEmployeeVoting() {
         </table>
       </div>
 
-      {/* View Voting Details Modal */}
-      <Transition appear show={isViewModalOpen} as={React.Fragment}>
-        <Dialog 
-          as="div" 
-          className="relative z-50" 
-          onClose={() => setIsViewModalOpen(false)}
-        >
-          <Transition.Child
-            as={React.Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
+      {/* Delete Confirmation Modal */}
+      <Transition appear show={isDeleteModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={() => setIsDeleteModalOpen(false)}>
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75" />
+            </Transition.Child>
 
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4">
-              <Transition.Child
-                as={React.Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <div className="flex justify-between items-center mb-6">
-                    <Dialog.Title className="text-xl font-bold">
-                      Voting Details
-                    </Dialog.Title>
-                    <button
-                      onClick={() => setIsViewModalOpen(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
+            <span className="inline-block h-screen align-middle" aria-hidden="true">
+              &#8203;
+            </span>
 
-                  {selectedVoting && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-500">Voting Year</label>
-                          <p className="font-medium">{selectedVoting.year}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-500">Status</label>
-                          <p>
-                            <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                              selectedVoting.status === 'Active' 
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {selectedVoting.status}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <div className="inline-block w-full max-w-sm p-6 my-8 bg-white rounded-lg shadow-lg text-left align-middle">
+                <Dialog.Title as="h3" className="text-lg font-semibold">
+                  Confirm Delete
+                </Dialog.Title>
+                <div className="mt-2">
+                  <p className="text-sm">Are you sure you want to delete this voting record? This action cannot be undone.</p>
+                </div>
 
-                      <div>
-                        <label className="text-sm text-gray-500">Voting Period</label>
-                        <p className="font-medium">
-                          {selectedVoting.period.fromDate} to {selectedVoting.period.toDate}
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-500">Total Candidates</label>
-                          <p className="font-medium">{selectedVoting.totalCandidates}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-500">Total Votes</label>
-                          <p className="font-medium">{selectedVoting.totalVotes}</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-500">Winner</label>
-                          <p className="font-medium">{selectedVoting.winners.winner}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-500">Runner Up</label>
-                          <p className="font-medium">{selectedVoting.winners.runnerUp}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end mt-6">
-                    <Button
-                      onClick={() => setIsViewModalOpen(false)}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
+                <div className="mt-4 flex justify-end">
+                  <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button className="ml-2" variant="danger" onClick={handleDeleteConfirm}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </Transition.Child>
           </div>
         </Dialog>
       </Transition>
 
-      {/* Delete Confirmation Modal */}
-      <Transition appear show={isDeleteModalOpen} as={React.Fragment}>
-        <Dialog 
-          as="div" 
-          className="relative z-50" 
-          onClose={() => setIsDeleteModalOpen(false)}
-        >
-          <Transition.Child
-            as={React.Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
+      {/* View Voting Details Modal */}
+      <Transition appear show={isViewModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={() => setIsViewModalOpen(false)}>
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75" />
+            </Transition.Child>
 
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={React.Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <div className="flex items-center gap-3 mb-4">
-                    <AlertTriangle className="h-6 w-6 text-red-500" />
-                    <Dialog.Title className="text-lg font-medium">
-                      Delete Voting Record
-                    </Dialog.Title>
-                  </div>
+            <span className="inline-block h-screen align-middle" aria-hidden="true">
+              &#8203;
+            </span>
 
-                  <p className="text-sm text-gray-500 mb-4">
-                    Are you sure you want to delete this voting record? This action cannot be undone.
-                  </p>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <div className="inline-block w-full max-w-lg p-6 my-8 bg-white rounded-lg shadow-lg text-left align-middle">
+                <Dialog.Title as="h3" className="text-lg font-semibold">
+                  Voting Details
+                </Dialog.Title>
+                <div className="mt-2">
+                  {/* Render voting details here */}
+                  <p className="text-sm">Details for voting record ID {selectedVoting?.id}</p>
+                </div>
 
-                  <div className="flex justify-end gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsDeleteModalOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                      onClick={handleDeleteConfirm}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
+                <div className="mt-4 flex justify-end">
+                  <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </Transition.Child>
           </div>
         </Dialog>
       </Transition>
@@ -436,4 +281,4 @@ function ManageEmployeeVoting() {
   );
 }
 
-export default ManageEmployeeVoting; 
+export default ManageEmployeeVoting;

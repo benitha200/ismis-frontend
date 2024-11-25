@@ -1,45 +1,65 @@
-import React, { useState, Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { useTheme } from '../context/ThemeContext';
-import { X } from 'lucide-react';
+import React, { useState, useEffect, Fragment } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { useTheme } from "../context/ThemeContext";
+import { X } from "lucide-react";
 
-function AddMassSportModal({ isOpen, onClose, onAdd }) {
+function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
   const { isDarkMode } = useTheme();
+
   const [formData, setFormData] = useState({
-    date: '',
-    location: '',
-    round: '',
-    purpose: '',
-    femaleCount: '',
-    maleCount: '',
-    organizers: '',
-    guestOfHonor: ''
+    date: "",
+    province: "",
+    district: "",
+    sector: "",
+    cell: "",
+    village: "",
+    rounds: 1,
+    purposeTheam: "",
+    numberFemaleParticipants: 0,
+    numberMaleParticipants: 0,
+    organisers: "",
+    guestOfHonor: "",
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const total = Number(formData.femaleCount) + Number(formData.maleCount);
-    onAdd({ ...formData, total });
-    setFormData({
-      date: '',
-      location: '',
-      round: '',
-      purpose: '',
-      femaleCount: '',
-      maleCount: '',
-      organizers: '',
-      guestOfHonor: ''
-    });
-  };
+  // Prepopulate form fields if editing
+  useEffect(() => {
+    if (sport) {
+      setFormData(sport);
+    } else {
+      setFormData({
+        date: "",
+        province: "",
+        district: "",
+        sector: "",
+        cell: "",
+        village: "",
+        rounds: 1,
+        purposeTheam: "",
+        numberFemaleParticipants: 0,
+        numberMaleParticipants: 0,
+        organisers: "",
+        guestOfHonor: "",
+      });
+    }
+  }, [sport]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: name.includes("number") || name === "rounds" ? parseInt(value, 10) || 0 : value,
     }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const totalParticipants = formData.numberFemaleParticipants + formData.numberMaleParticipants;
+
+    onAdd({ ...formData, totalParticipants });
+
+    onClose();
   };
 
   return (
@@ -68,143 +88,107 @@ function AddMassSportModal({ isOpen, onClose, onAdd }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={`w-full max-w-2xl transform overflow-hidden rounded-lg ${
-                isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'
-              } p-6 text-left align-middle shadow-xl transition-all`}>
-                <div className="flex justify-between items-center mb-6">
-                  <Dialog.Title className="text-xl font-bold">
-                    Add New Mass Sport Event
+              <Dialog.Panel
+                className={`w-full max-w-2xl transform overflow-hidden rounded-lg ${
+                  isDarkMode ? "bg-gray-900 text-white" : "bg-white"
+                } shadow-lg p-8 text-left transition-all`}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <Dialog.Title className="text-xl font-semibold">
+                    {sport ? "Edit Mass Sport Event" : "Add New Mass Sport Event"}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1 text-sm font-medium">Date</label>
-                      <Input
-                        type="date"
-                        name="date"
-                        value={formData.date}
-                        onChange={handleChange}
-                        required
-                        className="w-full"
-                      />
+                      <label className="block text-sm font-medium mb-1">Date</label>
+                      <Input type="date" name="date" value={formData.date} onChange={handleChange} required />
                     </div>
                     <div>
-                      <label className="block mb-1 text-sm font-medium">Location</label>
-                      <Input
-                        type="text"
-                        name="location"
-                        value={formData.location}
-                        onChange={handleChange}
-                        required
-                        placeholder="Enter location"
-                        className="w-full"
-                      />
+                      <label className="block text-sm font-medium mb-1">Province</label>
+                      <Input type="text" name="province" value={formData.province} onChange={handleChange} required />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">District</label>
+                      <Input type="text" name="district" value={formData.district} onChange={handleChange} required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Sector</label>
+                      <Input type="text" name="sector" value={formData.sector} onChange={handleChange} required />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Cell</label>
+                      <Input type="text" name="cell" value={formData.cell} onChange={handleChange} required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Village</label>
+                      <Input type="text" name="village" value={formData.village} onChange={handleChange} required />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rounds</label>
+                    <Input type="number" name="rounds" value={formData.rounds} onChange={handleChange} min="1" required />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Purpose/Theme</label>
+                    <Input type="text" name="purposeTheam" value={formData.purposeTheam} onChange={handleChange} required />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1 text-sm font-medium">Round</label>
-                      <Input
-                        type="text"
-                        name="round"
-                        value={formData.round}
-                        onChange={handleChange}
-                        required
-                        placeholder="Enter round"
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block mb-1 text-sm font-medium">Purpose</label>
-                      <Input
-                        type="text"
-                        name="purpose"
-                        value={formData.purpose}
-                        onChange={handleChange}
-                        required
-                        placeholder="Enter purpose"
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-1 text-sm font-medium">No. of Female</label>
+                      <label className="block text-sm font-medium mb-1">Female Participants</label>
                       <Input
                         type="number"
-                        name="femaleCount"
-                        value={formData.femaleCount}
+                        name="numberFemaleParticipants"
+                        value={formData.numberFemaleParticipants}
                         onChange={handleChange}
-                        required
                         min="0"
-                        className="w-full"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block mb-1 text-sm font-medium">No. of Male</label>
+                      <label className="block text-sm font-medium mb-1">Male Participants</label>
                       <Input
                         type="number"
-                        name="maleCount"
-                        value={formData.maleCount}
+                        name="numberMaleParticipants"
+                        value={formData.numberMaleParticipants}
                         onChange={handleChange}
-                        required
                         min="0"
-                        className="w-full"
+                        required
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-1 text-sm font-medium">Organizers</label>
-                      <Input
-                        type="text"
-                        name="organizers"
-                        value={formData.organizers}
-                        onChange={handleChange}
-                        required
-                        placeholder="Enter organizers"
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block mb-1 text-sm font-medium">Guest of Honor</label>
-                      <Input
-                        type="text"
-                        name="guestOfHonor"
-                        value={formData.guestOfHonor}
-                        onChange={handleChange}
-                        required
-                        placeholder="Enter guest of honor"
-                        className="w-full"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Organisers</label>
+                    <Input type="text" name="organisers" value={formData.organisers} onChange={handleChange} required />
                   </div>
 
-                  <div className="flex justify-end gap-3 mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onClose}
-                    >
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Guest of Honor</label>
+                    <Input type="text" name="guestOfHonor" value={formData.guestOfHonor} onChange={handleChange} />
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <Button type="button" variant="outline" onClick={onClose}>
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Add Mass Sport
-                    </Button>
+                    <Button type="submit">{sport ? "Save Changes" : "Add Event"}</Button>
                   </div>
                 </form>
               </Dialog.Panel>
@@ -216,4 +200,4 @@ function AddMassSportModal({ isOpen, onClose, onAdd }) {
   );
 }
 
-export default AddMassSportModal; 
+export default AddMassSportModal;

@@ -27,32 +27,20 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
 
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
-    period: {
-      startDate: initialData?.period?.startDate || '',
-      endDate: initialData?.period?.endDate || ''
-    },
+    fromDate: initialData?.fromDate || '',
+    toDate: initialData?.toDate || '',
     organiser: initialData?.organiser || '',
-    status: initialData?.status || '',
     participants: initialData?.participants || [],
-    description: initialData?.description || '',
-    venue: initialData?.venue || '',
-    trainingType: initialData?.trainingType || ''
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData({
         title: initialData.title || '',
-        period: {
-          startDate: initialData.period?.startDate || '',
-          endDate: initialData.period?.endDate || ''
-        },
+        fromDate: initialData.fromDate || '',
+        toDate: initialData.toDate || '',
         organiser: initialData.organiser || '',
-        status: initialData.status || '',
         participants: initialData.participants || [],
-        description: initialData.description || '',
-        venue: initialData.venue || '',
-        trainingType: initialData.trainingType || ''
       });
     }
   }, [initialData]);
@@ -62,27 +50,16 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleParticipantChange = (selectedOptions) => {
     setFormData(prev => ({
       ...prev,
-      participants: selectedOptions || []
+      participants: selectedOptions ? selectedOptions.map(p => p.value) : []
     }));
   };
 
@@ -93,35 +70,28 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
 
     try {
       // Validation
-      if (!formData.title || !formData.period.startDate || !formData.organiser) {
+      if (!formData.title || !formData.fromDate || !formData.organiser) {
         throw new Error('Please fill in all required fields');
       }
 
-      // Transform participants data before submission
+      // Prepare the data to submit
       const submissionData = {
-        ...formData,
-        participants: formData.participants.map(p => ({
-          id: p.value,
-          name: p.label,
-          ...p.details
-        }))
+        title: formData.title,
+        fromDate: formData.fromDate,
+        toDate: formData.toDate,
+        organiser: formData.organiser,
+        participants: formData.participants,
       };
 
       await onSubmit(submissionData);
       
-      // Reset form
+      // Reset form after submission
       setFormData({
         title: '',
-        period: {
-          startDate: '',
-          endDate: ''
-        },
+        fromDate: '',
+        toDate: '',
         organiser: '',
-        status: '',
         participants: [],
-        description: '',
-        venue: '',
-        trainingType: ''
       });
     } catch (err) {
       setError(err.message);
@@ -168,8 +138,8 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
           </label>
           <input
             type="date"
-            name="period.startDate"
-            value={formData.period.startDate}
+            name="fromDate"
+            value={formData.fromDate}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             disabled={loading}
@@ -181,12 +151,12 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
           </label>
           <input
             type="date"
-            name="period.endDate"
-            value={formData.period.endDate}
+            name="toDate"
+            value={formData.toDate}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             disabled={loading}
-            min={formData.period.startDate}
+            min={formData.fromDate}
           />
         </div>
       </div>
@@ -210,75 +180,6 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
         </select>
       </div>
 
-      {/* Training Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Training Type
-        </label>
-        <select
-          name="trainingType"
-          value={formData.trainingType}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          disabled={loading}
-        >
-          <option value="">Select Type</option>
-          <option value="Technical">Technical</option>
-          <option value="Tactical">Tactical</option>
-          <option value="Physical">Physical</option>
-          <option value="Mental">Mental</option>
-        </select>
-      </div>
-
-      {/* Venue */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Venue
-        </label>
-        <input
-          type="text"
-          name="venue"
-          value={formData.venue}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter training venue"
-          disabled={loading}
-        />
-      </div>
-
-      {/* Participants */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Number of Participants
-        </label>
-        <input
-          type="number"
-          name="participants"
-          value={formData.participants}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter number of participants"
-          disabled={loading}
-          min="0"
-        />
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={4}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter training description"
-          disabled={loading}
-        />
-      </div>
-
       {/* Participants Multi-select */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -290,7 +191,7 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
           options={availableProfessionals}
           className="basic-multi-select"
           classNamePrefix="select"
-          value={formData.participants}
+          value={formData.participants.map(id => availableProfessionals.find(p => p.value === id))}
           onChange={handleParticipantChange}
           placeholder="Select participants..."
           isDisabled={loading}
@@ -312,17 +213,20 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
             Selected Participants ({formData.participants.length})
           </h4>
           <div className="flex flex-wrap gap-2">
-            {formData.participants.map((participant) => (
-              <div 
-                key={participant.value}
-                className="bg-white px-3 py-1 rounded-full border text-sm flex items-center gap-2"
-              >
-                <span>{participant.label}</span>
-                <span className="text-xs text-gray-500">
-                  {participant.details.type}
-                </span>
-              </div>
-            ))}
+            {formData.participants.map((participantId) => {
+              const participant = availableProfessionals.find(p => p.value === participantId);
+              return (
+                <div 
+                  key={participant.value}
+                  className="bg-white px-3 py-1 rounded-full border text-sm flex items-center gap-2"
+                >
+                  <span>{participant.label}</span>
+                  <span className="text-xs text-gray-500">
+                    {participant.details.type}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -349,4 +253,4 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
   );
 };
 
-export default AddTrainingForm; 
+export default AddTrainingForm;

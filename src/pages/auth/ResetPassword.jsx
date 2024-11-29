@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import axiosInstance from '../../utils/axiosInstance';
 
 function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
@@ -9,15 +10,28 @@ function ResetPassword() {
     password: '',
     confirmPassword: ''
   });
+  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle password reset logic here
+    if (formData.password !== formData.confirmPassword) {
+      setMessage('Passwords do not match.');
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.post('auth/reset-password', {
+        password: formData.password
+      });
+      setMessage('Password has been reset successfully.');
+    } catch (error) {
+      setMessage('Failed to reset password. Please try again.');
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#F5F5FA] flex flex-col items-center justify-center p-4">
-      <img src="/logo.png" alt="Logo" className="h-16 mb-8" />
+      <img src="https://dashboard.codeparrot.ai/api/assets/Z0iP4YNVQVcR8-NP__zKlYkwU" alt="Logo" className="h-16 mb-8" />
       
       <div className="w-full max-w-md bg-white rounded-[20px] shadow-sm p-8">
         <h2 className="text-2xl font-semibold text-[#1B2559] mb-2">Reset password</h2>
@@ -78,6 +92,12 @@ function ResetPassword() {
           </button>
         </form>
 
+        {message && (
+          <div className="mt-4 text-center text-sm text-[#A3AED0]">
+            {message}
+          </div>
+        )}
+
         <div className="mt-6 text-center">
           <div className="text-[#A3AED0] mb-2">OR</div>
           <div className="text-[#A3AED0]">
@@ -92,4 +112,4 @@ function ResetPassword() {
   );
 }
 
-export default ResetPassword; 
+export default ResetPassword;

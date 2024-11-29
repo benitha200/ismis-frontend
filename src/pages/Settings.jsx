@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import { User, Lock, Camera, Mail, Phone, Building, MapPin } from 'lucide-react';
-import axios from '../lib/axios';
+import { useAuth } from '../hooks/useAuth';
+import axios from '../lib/axios'; // Assuming axios is being used for API calls
 
 const Settings = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, updateUser } = useAuth();  // Using user from context
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    department: '',
-    location: '',
-    photo: '/profile/profile-pic.png'
+    name: user?.name || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    department: user?.department || '',
+    location: user?.location || '',
+    photo: user?.photo || '/profile/profile-pic.png'
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -23,68 +25,37 @@ const Settings = () => {
     newPassword: '',
     confirmPassword: ''
   });
-  
-  useEffect(() => {
-    const loadUserData = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('token'); // Fetch token from storage
-        if (!token) {
-          throw new Error('User is not logged in');
-        }
-  
-        const response = await axios.get('/me', {
-          headers: {
-            Authorization: `Bearer ${token}` // Include token in request
-          }
-        });
-  
-        // Log the API response to inspect what is returned
-        console.log('API Response:', response);
-  
-        // Extract and log user details
-        const data = response.data;
-        console.log('Logged-in User Details:', data); // Log user details to console
-  
-        // Update profileData state with the user details
-        setProfileData({
-          name: data.name,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          department: data.department,
-          location: data.location,
-          photo: data.photo || '/profile/profile-pic.png',
-        });
-      } catch (error) {
-        console.error('Error loading user data:', error.response?.data || error.message);
-        toast.error(`Failed to load user data: ${error.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    loadUserData();
-  }, []);
-  
 
-  // Handle profile update submission
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        department: user.department,
+        location: user.location,
+        photo: user.photo || '/profile/profile-pic.png',
+      });
+    }
+  }, [user]);
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_URL}`, {
-        method: 'PUT',
+      const response = await axios.put('/updateProfile', profileData, {
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(profileData)
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
       });
-      if (!response.ok) throw new Error('Failed to update profile');
-      
-      toast.success('Profile updated successfully');
+      if (response.status === 200) {
+        toast.success('Profile updated successfully');
+        updateUser(response.data);  // Update user in context
+      } else {
+        toast.error('Failed to update profile');
+      }
     } catch (error) {
       toast.error('Failed to update profile');
     } finally {
@@ -92,7 +63,6 @@ const Settings = () => {
     }
   };
 
-  // Handle password update submission
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
@@ -109,25 +79,24 @@ const Settings = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_URL}`, {
-        method: 'POST',
+      const response = await axios.post('/changePassword', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      }, {
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        })
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
       });
-      if (!response.ok) throw new Error('Failed to change password');
-      
-      toast.success('Password changed successfully');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
+      if (response.status === 200) {
+        toast.success('Password changed successfully');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        toast.error('Failed to change password');
+      }
     } catch (error) {
       toast.error('Failed to change password');
     } finally {
@@ -135,7 +104,6 @@ const Settings = () => {
     }
   };
 
-  // Handle profile photo change
   const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -143,22 +111,20 @@ const Settings = () => {
       formData.append('photo', file);
 
       try {
-        const response = await fetch(`${API_URL}`, {
-          method: 'POST',
+        const response = await axios.post('/uploadPhoto', formData, {
           headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
         });
-        if (!response.ok) throw new Error('Failed to upload photo');
-
-        const data = await response.json();
-        setProfileData(prev => ({
-          ...prev,
-          photo: data.photo
-        }));
-
-        toast.success('Photo updated successfully');
+        if (response.status === 200) {
+          setProfileData(prev => ({
+            ...prev,
+            photo: response.data.photo
+          }));
+          toast.success('Photo updated successfully');
+        } else {
+          toast.error('Failed to upload photo');
+        }
       } catch (error) {
         toast.error('Failed to upload photo');
       }
@@ -201,10 +167,124 @@ const Settings = () => {
           {activeTab === 'profile' ? (
             <form onSubmit={handleProfileSubmit} className="space-y-6">
               {/* Profile Settings Form */}
+              <div className="flex items-center space-x-4">
+                <div className="relative w-20 h-20">
+                  <img src={profileData.photo} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                  <label className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer">
+                    <Camera className="w-4 h-4 text-white" />
+                    <input type="file" className="absolute inset-0 opacity-0" onChange={handlePhotoChange} />
+                  </label>
+                </div>
+                <div>
+                  <div className="text-lg font-medium">{profileData.name} {profileData.lastName}</div>
+                  <div className="text-sm text-gray-500">{profileData.email}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">First Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={profileData.name}
+                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Last Name</label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={profileData.lastName}
+                    onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    type="text"
+                    id="phone"
+                    name="phone"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={profileData.department}
+                    onChange={(e) => setProfileData({ ...profileData, department: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location</label>
+                  <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={profileData.location}
+                    onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isSubmitting} loading={isSubmitting}>
+                  Save Changes
+                </Button>
+              </div>
             </form>
           ) : (
             <form onSubmit={handlePasswordSubmit} className="space-y-6">
               {/* Password Settings Form */}
+              <div>
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">Current Password</label>
+                <input
+                  type="password"
+                  id="currentPassword"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">New Password</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isSubmitting} loading={isSubmitting}>
+                  Change Password
+                </Button>
+              </div>
             </form>
           )}
         </div>

@@ -151,16 +151,20 @@ export const federationApi = {
   // Player/Staff Management endpoints
   getAllPlayersStaff: async (filters = {}) => {
     try {
-      const response = await axiosInstance.get('/players-staff', { params: filters });
-      return response.data;
+      console.log('Fetching players/staff with filters:', filters); // Debugging line
+      const response = await axiosInstance.get('/player-staff', { params: filters });
+      console.log('API response:', response.data); // Debugging line
+      return response.data || [];
     } catch (error) {
       handleApiError(error, 'Failed to fetch players/staff');
+      return []; // Return an empty array in case of error
     }
   },
 
+
   getPlayerStaffDetails: async (id) => {
     try {
-      const response = await axiosInstance.get(`/players-staff/${id}`);
+      const response = await axiosInstance.get(`/player-staff/${id}`);
       return response.data;
     } catch (error) {
       handleApiError(error, 'Failed to fetch player/staff details');
@@ -169,7 +173,9 @@ export const federationApi = {
 
   createPlayerStaff: async (data) => {
     try {
-      const response = await axiosInstance.post('/players-staff', data);
+      console.log('Creating player/staff with data:', data); // Debugging line
+      const response = await axiosInstance.post('/player-staff', data);
+      console.log('Player/Staff created:', response.data); // Debugging line
       toast.success('Player/Staff added successfully');
       return response.data;
     } catch (error) {
@@ -177,9 +183,10 @@ export const federationApi = {
     }
   },
 
+
   updatePlayerStaff: async (id, data) => {
     try {
-      const response = await axiosInstance.put(`/players-staff/${id}`, data);
+      const response = await axiosInstance.put(`/player-staff/${id}`, data);
       toast.success('Player/Staff updated successfully');
       return response.data;
     } catch (error) {
@@ -189,7 +196,7 @@ export const federationApi = {
 
   deletePlayerStaff: async (id) => {
     try {
-      await axiosInstance.delete(`/players-staff/${id}`);
+      await axiosInstance.delete(`/player-staff/${id}`);
       toast.success('Player/Staff deleted successfully');
     } catch (error) {
       handleApiError(error, 'Failed to delete player/staff');
@@ -198,7 +205,7 @@ export const federationApi = {
 
   getTransferHistory: async (id) => {
     try {
-      const response = await axiosInstance.get(`/players-staff/${id}/transfers`);
+      const response = await axiosInstance.get(`/player-staff/${id}/transfers`);
       return response.data;
     } catch (error) {
       handleApiError(error, 'Failed to fetch transfer history');

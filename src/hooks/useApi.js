@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 const useApi = (url) => {
   const [data, setData] = useState(null);
@@ -9,7 +9,7 @@ const useApi = (url) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(url);
+        const response = await axiosInstance.get(url);
         setData(response.data);
         setLoading(false);
       } catch (err) {

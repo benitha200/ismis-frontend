@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const storedUser = localStorage.getItem('user');
+      // console.log(storedUser)
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }

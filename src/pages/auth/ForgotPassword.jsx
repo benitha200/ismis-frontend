@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import axiosInstance from '../../utils/axiosInstance';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement forgot password logic
-    // This should call your API endpoint to send reset email
-    console.log('Send reset email to:', email);
+    try {
+      const response = await axiosInstance.post('auth/forgot-password', { email });
+      setMessage('A reset link has been sent to your email.');
+    } catch (error) {
+      setMessage('Failed to send reset email. Please try again.');
+    }
   };
 
   return (
@@ -17,7 +22,7 @@ const ForgotPassword = () => {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <img 
-            src="/logo/logo.svg" 
+            src="https://dashboard.codeparrot.ai/api/assets/Z0iPQ7C__zKlYkwU" 
             alt="Logo" 
             className="h-20 w-auto" 
           />
@@ -57,6 +62,12 @@ const ForgotPassword = () => {
             </button>
           </form>
 
+          {message && (
+            <div className="mt-4 text-center text-sm text-gray-600">
+              {message}
+            </div>
+          )}
+
           <div className="mt-6 text-center">
             <div className="text-sm text-gray-500">OR</div>
             <div className="mt-2">
@@ -72,4 +83,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword; 
+export default ForgotPassword;

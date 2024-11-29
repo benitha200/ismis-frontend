@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
-  TableCell 
-} from '../components/ui/table';
-import { Search, Plus, Filter, X } from 'lucide-react';
+import { Plus, Edit } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import AddTrainingForm from '../components/forms/AddTrainingForm';
 import ActionMenu from '../components/ui/ActionMenu';
@@ -18,34 +10,35 @@ import Message from '../components/ui/Message';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import { AlertCircle } from 'lucide-react';
-import axiosInstance from '../utils/axiosInstance'; // import the axios instance
+import axiosInstance from '../utils/axiosInstance'; // Import the axios instance
+
+// Define the Table components if they are not from a library
+const Table = ({ children }) => <table className="min-w-full">{children}</table>;
+const TableHeader = ({ children }) => <thead>{children}</thead>;
+const TableRow = ({ children }) => <tr>{children}</tr>;
+const TableHead = ({ children }) => <th className="px-4 py-2">{children}</th>;
+const TableBody = ({ children }) => <tbody>{children}</tbody>;
+const TableCell = ({ children }) => <td className="px-4 py-2">{children}</td>;
 
 const Training = () => {
   const { isDarkMode } = useDarkMode();
-  const [activeTab, setActiveTab] = useState('All 87');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedTraining, setSelectedTraining] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRows, setSelectedRows] = useState([]);
   const [trainings, setTrainings] = useState([]);
   const [filteredTrainings, setFilteredTrainings] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [showEditConfirm, setShowEditConfirm] = useState(false);
-  const [editDataToConfirm, setEditDataToConfirm] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [trainingToDelete, setTrainingToDelete] = useState(null);
+  const [trainingToEdit, setTrainingToEdit] = useState(null);
 
   // Fetch training data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('/trainings'); // replace with your endpoint
+        const response = await axiosInstance.get('/trainings'); // Replace with your endpoint
         setTrainings(response.data);
         setFilteredTrainings(response.data);
         setIsLoading(false);
@@ -61,46 +54,35 @@ const Training = () => {
     fetchData();
   }, []);
 
-  // Handle adding new training
-  const handleAddTraining = async (data) => {
+  // Handle adding or editing training
+  const handleAddOrEditTraining = async (data) => {
     setIsSubmitting(true);
     try {
-      const response = await axiosInstance.post('/trainings', data); // replace with your endpoint
-      setTrainings([...trainings, response.data]);
-      setFilteredTrainings([...trainings, response.data]);
+      let response;
+      if (trainingToEdit) {
+        response = await axiosInstance.put(`/trainings/${trainingToEdit.id}`, data); // Edit endpoint
+        const updatedTrainings = trainings.map((t) =>
+          t.id === trainingToEdit.id ? response.data : t
+        );
+        setTrainings(updatedTrainings);
+        setFilteredTrainings(updatedTrainings);
+      } else {
+        response = await axiosInstance.post('/trainings', data); // Add endpoint
+        const newTrainings = [...trainings, response.data];
+        setTrainings(newTrainings);
+        setFilteredTrainings(newTrainings);
+      }
       setShowAddModal(false);
       setMessage({
         type: 'success',
-        text: 'Training added successfully'
+        text: trainingToEdit ? 'Training updated successfully' : 'Training added successfully'
       });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       setMessage({
         type: 'error',
-        text: 'Failed to add training'
+        text: 'Failed to add or update training'
       });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle editing a training
-  const handleEditConfirm = async (updatedData) => {
-    setIsSubmitting(true);
-    try {
-      const response = await axiosInstance.put(`/trainings/${selectedTraining.id}`, updatedData); // replace with your endpoint
-      const updatedTrainings = trainings.map(t => 
-        t.id === selectedTraining.id ? { ...t, ...response.data } : t
-      );
-      setTrainings(updatedTrainings);
-      setFilteredTrainings(updatedTrainings);
-      setShowEditConfirm(false);
-      setShowAddModal(false);
-      setSelectedTraining(null);
-      setEditDataToConfirm(null);
-      toast.success('Training updated successfully');
-    } catch (error) {
-      toast.error('Failed to update training');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,11 +92,11 @@ const Training = () => {
   const handleDeleteConfirm = async () => {
     setIsSubmitting(true);
     try {
-      await axiosInstance.delete(`/trainings/${trainingToDelete.id}`); // replace with your endpoint
+      await axiosInstance.delete(`/trainings/${trainingToDelete.id}`); // Delete endpoint
       const updatedTrainings = trainings.filter(t => t.id !== trainingToDelete.id);
       setTrainings(updatedTrainings);
       setFilteredTrainings(updatedTrainings);
-      setShowDeleteConfirm(false);
+      setShowDeleteDialog(false);
       setTrainingToDelete(null);
       toast.success('Training deleted successfully');
     } catch (error) {
@@ -122,20 +104,6 @@ const Training = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Handle search
-  const handleSearch = (searchValue) => {
-    const filtered = trainings.filter(training => 
-      training.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-      training.organiser.toLowerCase().includes(searchValue.toLowerCase()) ||
-      training.venue.toLowerCase().includes(searchValue.toLowerCase()) ||
-      training.type.toLowerCase().includes(searchValue.toLowerCase()) ||
-      training.status.toLowerCase().includes(searchValue.toLowerCase()) ||
-      training.period.toLowerCase().includes(searchValue.toLowerCase())
-    );
-    setFilteredTrainings(filtered);
-    setCurrentPage(1); // Reset to first page when searching
   };
 
   // Pagination logic
@@ -163,11 +131,6 @@ const Training = () => {
         <input
           type="text"
           placeholder="Search trainings..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            handleSearch(e.target.value);
-          }}
           className="border p-2 rounded-md w-full"
         />
         <Button
@@ -184,11 +147,10 @@ const Training = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Title</TableHead>
+            <TableHead>From Date</TableHead>
+            <TableHead>To Date</TableHead>
             <TableHead>Organiser</TableHead>
-            <TableHead>Venue</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Period</TableHead>
+            <TableHead>Participants</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -196,20 +158,19 @@ const Training = () => {
           {currentItems.map((training) => (
             <TableRow key={training.id}>
               <TableCell>{training.title}</TableCell>
+              <TableCell>{training.fromDate ? new Date(training.fromDate).toLocaleDateString() : 'N/A'}</TableCell>
+              <TableCell>{training.toDate ? new Date(training.toDate).toLocaleDateString() : 'N/A'}</TableCell>
               <TableCell>{training.organiser}</TableCell>
-              <TableCell>{training.venue}</TableCell>
-              <TableCell>{training.type}</TableCell>
-              <TableCell>{training.status}</TableCell>
-              <TableCell>{`${training.period.startDate} to ${training.period.endDate}`}</TableCell>
+              <TableCell>{training.participants ? training.participants.join(', ') : 'N/A'}</TableCell>
               <TableCell>
                 <ActionMenu
-                  onEdit={() => {
-                    setSelectedTraining(training);
-                    setShowAddModal(true);
-                  }}
                   onDelete={() => {
                     setTrainingToDelete(training);
                     setShowDeleteDialog(true);
+                  }}
+                  onEdit={() => {
+                    setTrainingToEdit(training);
+                    setShowAddModal(true);
                   }}
                 />
               </TableCell>
@@ -245,80 +206,29 @@ const Training = () => {
       <ConfirmDialog
         isOpen={showDeleteDialog}
         onClose={() => !isSubmitting && setShowDeleteDialog(false)}
-        onConfirm={handleDeleteConfirm} 
+        onConfirm={handleDeleteConfirm}
         title="Delete Training"
-        message={`Are you sure you want to delete ${selectedTraining?.title}? This action cannot be undone.`}
+        message="Are you sure you want to delete this training?"
         isSubmitting={isSubmitting}
       />
-
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => {
-          if (!isSubmitting) {
-            setShowAddModal(false);
-            setSelectedTraining(null);
-          }
-        }}
-        title={selectedTraining ? "Edit Training" : "Add Training"}
-      >
-        <AddTrainingForm
-          initialData={selectedTraining}
-          onSubmit={(data) => {
-            if (selectedTraining) {
-              setEditDataToConfirm(data);
-              setShowEditConfirm(true);
-            } else {
-              handleAddTraining(data);
-            }
-          }}
-          onCancel={() => {
-            if (!isSubmitting) {
-              setShowAddModal(false);
-              setSelectedTraining(null);
-            }
-          }}
-          isSubmitting={isSubmitting}
-        />
-      </Modal>
-
-      {/* Edit Confirmation Dialog */}
-      <Dialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
-        <DialogContent className="sm:max-w-[425px]">
+      
+      <Dialog open={showAddModal} onOpenChange={(open) => {
+        setShowAddModal(open);
+        setTrainingToEdit(null); // Reset on closing modal
+      }}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-600" />
-              Confirm Changes
-            </DialogTitle>
-            <DialogDescription className="py-4">
-              <div className="space-y-4">
-                <p>Please confirm the following changes:</p>
-                {editDataToConfirm && (
-                  <div className="space-y-2 text-sm bg-gray-50 p-4 rounded-lg">
-                    <p><span className="font-semibold">Title:</span> {editDataToConfirm.title}</p>
-                    <p><span className="font-semibold">Period:</span> {editDataToConfirm.period.startDate} to {editDataToConfirm.period.endDate}</p>
-                    <p><span className="font-semibold">Organiser:</span> {editDataToConfirm.organiser}</p>
-                    <p><span className="font-semibold">Venue:</span> {editDataToConfirm.venue}</p>
-                  </div>
-                )}
-              </div>
+            <DialogTitle>{trainingToEdit ? 'Edit Training' : 'Add Training'}</DialogTitle>
+            <DialogDescription>
+              {trainingToEdit ? 'Update the training details.' : 'Fill in the details for the new training'}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="destructive"
-              onClick={() => handleEditConfirm(editDataToConfirm)}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Saving...' : 'Confirm Changes'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowEditConfirm(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-          </div>
+          <AddTrainingForm
+            onSubmit={handleAddOrEditTraining}
+            onCancel={() => setShowAddModal(false)}
+            trainingToEdit={trainingToEdit}
+            isSubmitting={isSubmitting}
+          />
         </DialogContent>
       </Dialog>
     </div>

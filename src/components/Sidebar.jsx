@@ -23,7 +23,8 @@ import {
   Bell,
   Menu,
   X,
-  UserPlus
+  UserPlus,
+  Timer
 } from 'lucide-react';
 import { useDarkMode } from '../contexts/DarkModeContext';
 
@@ -50,7 +51,8 @@ const Sidebar = () => {
     { icon: Users, label: 'Partners', path: '/partners' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
     { icon: Trophy, label: 'Sports for all', path: '/sports-for-all' },
-    { icon: UserPlus, label: 'Transfer Report', path: '/player-transfer-report' }
+    { icon: UserPlus, label: 'Transfer Report', path: '/player-transfer-report' },
+    { icon: Timer, label: 'Match Operator', path: '/match-operator' }
   ];
 
   return (

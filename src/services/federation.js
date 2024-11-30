@@ -151,16 +151,12 @@ export const federationApi = {
   // Player/Staff Management endpoints
   getAllPlayersStaff: async (filters = {}) => {
     try {
-      console.log('Fetching players/staff with filters:', filters); // Debugging line
       const response = await axiosInstance.get('/player-staff', { params: filters });
-      console.log('API response:', response.data); // Debugging line
-      return response.data || [];
+      return response.data;
     } catch (error) {
-      handleApiError(error, 'Failed to fetch players/staff');
-      return []; // Return an empty array in case of error
+      handleApiError(error, 'Failed to fetch player/staff');
     }
   },
-
 
   getPlayerStaffDetails: async (id) => {
     try {
@@ -173,16 +169,13 @@ export const federationApi = {
 
   createPlayerStaff: async (data) => {
     try {
-      console.log('Creating player/staff with data:', data); // Debugging line
       const response = await axiosInstance.post('/player-staff', data);
-      console.log('Player/Staff created:', response.data); // Debugging line
       toast.success('Player/Staff added successfully');
       return response.data;
     } catch (error) {
       handleApiError(error, 'Failed to create player/staff');
     }
   },
-
 
   updatePlayerStaff: async (id, data) => {
     try {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Modal, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from './components';
-import { Plus, Search, Filter, Edit, Trash2, History, Eye } from 'react-icons/all';
+import { Plus, Search, Edit, Trash2, Eye } from 'react-icons/all';
 import AddPlayerForm from './AddPlayerForm';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -43,6 +43,12 @@ const ManagePlayers = ({ playersData, federations, clubs, isLoading }) => {
     // Logic to delete player
     console.log('Deleted:', selectedPlayer);
     setShowConfirmDialog(false);
+  };
+
+  const handleEdit = (player) => {
+    // Logic to edit player
+    console.log('Editing:', player);
+    // You can open a modal here to edit player details
   };
 
   const totalPages = Math.ceil(filteredPlayers.length / itemsPerPage);
@@ -112,7 +118,7 @@ const ManagePlayers = ({ playersData, federations, clubs, isLoading }) => {
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => console.log('Editing', player)}
+                      onClick={() => handleEdit(player)}
                       className="p-1 rounded hover:bg-gray-100"
                     >
                       <Edit className="h-4 w-4" />

@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useTheme } from "../context/ThemeContext";
 import { X } from "lucide-react";
-import { locations } from "../data/locations"; // Import locations data
 
 function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
   const { isDarkMode } = useTheme();
@@ -24,11 +23,7 @@ function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
     guestOfHonor: "",
   });
 
-  const [districts, setDistricts] = useState([]);
-  const [sectors, setSectors] = useState([]);
-  const [cells, setCells] = useState([]);
-  const [villages, setVillages] = useState([]);
-
+  // Prepopulate form fields if editing
   useEffect(() => {
     if (sport) {
       setFormData(sport);
@@ -56,26 +51,6 @@ function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
       ...prev,
       [name]: name.includes("number") || name === "rounds" ? parseInt(value, 10) || 0 : value,
     }));
-
-    if (name === "province") {
-      const selectedDistricts = locations.districts[value] || [];
-      setDistricts(selectedDistricts);
-      setSectors([]);
-      setCells([]);
-      setVillages([]);
-    } else if (name === "district") {
-      const selectedSectors = locations.sectors[value] || [];
-      setSectors(selectedSectors);
-      setCells([]);
-      setVillages([]);
-    } else if (name === "sector") {
-      const selectedCells = locations.cells[value] || [];
-      setCells(selectedCells);
-      setVillages([]);
-    } else if (name === "cell") {
-      const selectedVillages = locations.villages[value] || [];
-      setVillages(selectedVillages);
-    }
   };
 
   const handleSubmit = (e) => {
@@ -138,94 +113,29 @@ function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Province</label>
-                      <select
-                        name="province"
-                        value={formData.province}
-                        onChange={handleChange}
-                        required
-                        className="w-full border rounded"
-                      >
-                        <option value="">Select Province</option>
-                        {locations.provinces.map((province) => (
-                          <option key={province} value={province}>
-                            {province}
-                          </option>
-                        ))}
-                      </select>
+                      <Input type="text" name="province" value={formData.province} onChange={handleChange} required />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">District</label>
-                      <select
-                        name="district"
-                        value={formData.district}
-                        onChange={handleChange}
-                        required
-                        className="w-full border rounded"
-                      >
-                        <option value="">Select District</option>
-                        {districts.map((district) => (
-                          <option key={district} value={district}>
-                            {district}
-                          </option>
-                        ))}
-                      </select>
+                      <Input type="text" name="district" value={formData.district} onChange={handleChange} required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Sector</label>
-                      <select
-                        name="sector"
-                        value={formData.sector}
-                        onChange={handleChange}
-                        required
-                        className="w-full border rounded"
-                      >
-                        <option value="">Select Sector</option>
-                        {sectors.map((sector) => (
-                          <option key={sector} value={sector}>
-                            {sector}
-                          </option>
-                        ))}
-                      </select>
+                      <Input type="text" name="sector" value={formData.sector} onChange={handleChange} required />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Cell</label>
-                      <select
-                        name="cell"
-                        value={formData.cell}
-                        onChange={handleChange}
-                        required
-                        className="w-full border rounded"
-                      >
-                        <option value="">Select Cell</option>
-                        {cells.map((cell) => (
-                          <option key={cell} value={cell}>
-                            {cell}
-                          </option>
-                        ))}
-                      </select>
+                      <Input type="text" name="cell" value={formData.cell} onChange={handleChange} required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Village</label>
-                      <select
-                        name="village"
-                        value={formData.village}
-                        onChange={handleChange}
-                        required
-                        className="w-full border rounded"
-                      >
-                        <option value="">Select Village</option>
-                        {villages.map((village) => (
-                          <option key={village} value={village}>
-                            {village}
-                          </option>
-                        ))}
-                      </select>
+                      <Input type="text" name="village" value={formData.village} onChange={handleChange} required />
                     </div>
                   </div>
 

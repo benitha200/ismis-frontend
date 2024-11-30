@@ -31,6 +31,9 @@ import Infrastructure from './pages/Infrastructure';
 import { InfrastructureProvider } from './contexts/InfrastructureContext';
 import SportsTourism from './pages/SportsTourism';
 import { TourismProvider } from './contexts/TourismContext';
+import AllSportsEvents from './pages/AllSportsEvents';
+import EventsPage from './pages/public/EventsPage';
+import { MatchOperatorDashboard, TeamManagement, MatchOperatorProvider } from './features/match-operator';
 
 function App() {
   return (
@@ -38,50 +41,54 @@ function App() {
       <DarkModeProvider>
         <InfrastructureProvider>
           <TourismProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <AuthProvider>
-                <Toaster position="top-right" richColors />
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/check-email" element={<CheckEmail />} />
-                  
-                  {/* Protected Routes */}
-                  <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/national-teams" element={<NationalTeams />} />
-                    <Route path="/federations" element={<Federations />} />
-                    <Route path="/sports-professionals" element={<SportsProfessionals />} />
-                    <Route path="/trainings" element={<Training />} />
-                    <Route path="/isonga-programs" element={<IsongaPrograms />} />
-                    <Route path="/academies" element={<Academies />} />
-                    <Route path="/infrastructure" element={<Infrastructure />} />
-                    <Route path="/sports-tourism" element={<SportsTourism />} />
-                    <Route path="/documents" element={<Documents />} />
-                    <Route path="/contracts" element={<Contracts />} />
-                    <Route path="/appointments" element={<Appointments />} />
-                    <Route path="/employee" element={<Employee />} />
-                    <Route path="/users" element={<Users />} />
-                    <Route path="/partners" element={<Partners />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/sports-for-all" element={<SportsForAll />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/player-transfer-report" element={<PlayerTransferReport />} />
-                    <Route path="/reports/sports-professionals" element={<Reports />} />
-                    <Route path="/reports/isonga-program" element={<Reports />} />
-                    <Route path="/reports/infrastructure" element={<Reports />} />
-                  </Route>
-                  
-                  {/* Landing Page */}
-                  <Route path="/landing" element={<LandingPage />} />
-                  
-                  {/* Fallback Route */}
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </AuthProvider>
-            </Router>
+            <MatchOperatorProvider>
+              <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <AuthProvider>
+                  <Toaster position="top-right" richColors />
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/check-email" element={<CheckEmail />} />
+                    <Route path="/landing" element={<LandingPage />} />
+                    <Route path="/sports-events" element={<AllSportsEvents />} />
+                    <Route path="/events" element={<EventsPage />} />
+                    
+                    {/* Protected Routes */}
+                    <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/national-teams" element={<NationalTeams />} />
+                      <Route path="/federations" element={<Federations />} />
+                      <Route path="/sports-professionals" element={<SportsProfessionals />} />
+                      <Route path="/trainings" element={<Training />} />
+                      <Route path="/isonga-programs" element={<IsongaPrograms />} />
+                      <Route path="/academies" element={<Academies />} />
+                      <Route path="/infrastructure" element={<Infrastructure />} />
+                      <Route path="/sports-tourism" element={<SportsTourism />} />
+                      <Route path="/documents" element={<Documents />} />
+                      <Route path="/contracts" element={<Contracts />} />
+                      <Route path="/appointments" element={<Appointments />} />
+                      <Route path="/employee" element={<Employee />} />
+                      <Route path="/users" element={<Users />} />
+                      <Route path="/partners" element={<Partners />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/sports-for-all" element={<SportsForAll />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/player-transfer-report" element={<PlayerTransferReport />} />
+                      <Route path="/reports/sports-professionals" element={<Reports />} />
+                      <Route path="/reports/isonga-program" element={<Reports />} />
+                      <Route path="/reports/infrastructure" element={<Reports />} />
+                      <Route path="/match-operator" element={<MatchOperatorDashboard />} />
+                      <Route path="/match-operator/teams" element={<TeamManagement />} />
+                    </Route>
+                    
+                    {/* Fallback Route */}
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </AuthProvider>
+              </Router>
+            </MatchOperatorProvider>
           </TourismProvider>
         </InfrastructureProvider>
       </DarkModeProvider>

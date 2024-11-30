@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../utils/axiosInstance';
+import axiosInstance from '../../utils/axiosInstance'; // Import axiosInstance
 
 const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(initialData || {
     name: '',
     acronym: '',
     yearFounded: '',
@@ -23,6 +23,7 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Set the initial form data when `initialData` changes (for editing mode)
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
@@ -94,6 +95,11 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
           formDataToSend.append(key, value);
         }
       });
+
+      // Append the logo file to FormData
+      if (formData.logo) {
+        formDataToSend.append('logo', formData.logo);
+      }
 
       // Log FormData content for debugging
       console.log('FormData being sent:');
@@ -272,6 +278,7 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
           <div>
             <label className="block text-sm font-medium mb-1">Legal Representative Phone</label>
             <Input
+
               type="tel"
               name="legalRepresentativePhone"
               value={formData.legalRepresentativePhone}

@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function SportsEvents() {
   const events = [
@@ -31,9 +32,12 @@ function SportsEvents() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-[#1B2559]">Sports Events</h2>
-        <button className="text-[#4318FF] flex items-center text-sm font-medium">
+        <Link 
+          to="/sports-events" 
+          className="text-[#4318FF] flex items-center text-sm font-medium hover:opacity-80"
+        >
           View all <ChevronRight className="w-4 h-4 ml-1" />
-        </button>
+        </Link>
       </div>
       <div className="space-y-6">
         {events.map((event) => (

@@ -1,47 +1,52 @@
-import React, { useState } from 'react';
-import { Info, Calendar } from 'lucide-react';
+/* src/components/forms/AddAppointmentForm.jsx */
+import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { Popover } from '@headlessui/react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
+import axiosInstance from '../../utils/axiosInstance';
 
 const AddAppointmentForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
-    time: '',
-    name: '',
-    phone: '',
-    message: '',
-    location: 'MINISPORTS OFFICE',
-    requestedDate: new Date(),
-    status: 'Not confirmed',
-    creator: 'email'
+    person_to_meet: 'MINISTER',
+    names: 'John Doe',
+    gender: 'Male',
+    email: 'johndoe@example.com',
+    cellphone: '1234567890',
+    purpose: 'Discussing new project proposals',
+    request_date: '2024-10-16T00:00:00.000Z',
+    request_time: '2024-10-16T09:30:00.000Z',
+    institution: '',
+    function: '',
+    other_people_to_attend: 'Jane Smith, Mark Brown',
+    other_ministry_staff: 'Secretary, Assistant',
   });
 
+  const [institutions, setInstitutions] = useState([]);
+  const [functions, setFunctions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showCalendar, setShowCalendar] = useState(false);
 
-  // Time slots available
-  const timeSlots = [
-    "08:00 - 08:30", "08:30 - 09:00", "09:00 - 09:30", "09:30 - 10:00",
-    "10:00 - 10:30", "10:30 - 11:00", "11:00 - 11:30", "11:30 - 12:00",
-    "14:00 - 14:30", "14:30 - 15:00", "15:00 - 15:30", "15:30 - 16:00",
-    "16:00 - 16:30", "16:30 - 17:00", "17:00 - 17:30", "17:30 - 18:00"
-  ];
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      try {
+        const response = await axiosInstance.get('/institutions');
+        setInstitutions(response.data);
+      } catch (error) {
+        console.error('Error fetching institutions:', error);
+      }
+    };
 
-  const locations = [
-    "MINISPORTS OFFICE",
-    "AMAHORO STADIUM",
-    "BK ARENA"
-  ];
+    const fetchFunctions = async () => {
+      try {
+        const response = await axiosInstance.get('/functions');
+        setFunctions(response.data);
+      } catch (error) {
+        console.error('Error fetching functions:', error);
+      }
+    };
 
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    setFormData(prev => ({ ...prev, requestedDate: date }));
-    setShowCalendar(false);
-  };
+    fetchInstitutions();
+    fetchFunctions();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,168 +54,194 @@ const AddAppointmentForm = ({ onSubmit, onCancel }) => {
     setError(null);
 
     try {
-      // Validation
-      if (!formData.time || !formData.name || !formData.phone) {
-        throw new Error('Please fill in all required fields');
-      }
+      const response = await axiosInstance.post('/appointments', formData);
+      console.log('Response:', response);
 
-      // Phone number validation (Rwanda format)
-      const phoneRegex = /^(\+?25)?(07[238]\d{7})$/;
-      if (!phoneRegex.test(formData.phone)) {
-        throw new Error('Please enter a valid Rwandan phone number');
-      }
-
-      await onSubmit(formData);
-      
-      // Reset form
-      setFormData({
-        time: '',
-        name: '',
-        phone: '',
-        message: '',
-        location: 'MINISPORTS OFFICE',
-        requestedDate: new Date(),
-        status: 'Not confirmed',
-        creator: 'email'
-      });
+      onSubmit && onSubmit(formData);
     } catch (err) {
-      setError(err.message);
+      console.error('Error submitting form:', err);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center space-x-2">
-          <Info className="h-5 w-5" />
+        <div className="bg-red-50 text-red-600 p-3 rounded-lg">
           <span>{error}</span>
         </div>
       )}
 
-      {/* Date and Time Selection */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block mb-1 text-sm font-medium">
-            Date <span className="text-red-500">*</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Person to Meet
           </label>
-          <div className="relative">
-            <Popover>
-              <Popover.Button className="w-full">
-                <div className="flex items-center justify-between w-full px-3 py-2 border rounded-lg">
-                  <span>{selectedDate.toLocaleDateString()}</span>
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                </div>
-              </Popover.Button>
-
-              <Popover.Panel className="absolute z-10 bg-white shadow-lg rounded-lg mt-1">
-                <DayPicker
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  disabled={[
-                    { before: new Date() },
-                    { dayOfWeek: [0, 6] } // Disable weekends
-                  ]}
-                />
-              </Popover.Panel>
-            </Popover>
-          </div>
+          <Input
+            type="text"
+            value={formData.person_to_meet}
+            onChange={(e) => setFormData(prev => ({ ...prev, person_to_meet: e.target.value }))}
+            placeholder="Enter person to meet"
+          />
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm font-medium">
-            Time <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.time}
-            onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-            required
-            className="w-full border rounded-lg p-2"
-          >
-            <option value="">Select Time</option>
-            {timeSlots.map(slot => (
-              <option key={slot} value={slot}>{slot}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Personal Information */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block mb-1 text-sm font-medium">
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
             Full Name <span className="text-red-500">*</span>
           </label>
           <Input
             type="text"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            value={formData.names}
+            onChange={(e) => setFormData(prev => ({ ...prev, names: e.target.value }))}
             required
             placeholder="Enter full name"
           />
         </div>
-        <div>
-          <label className="block mb-1 text-sm font-medium">
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Gender
+          </label>
+          <Input
+            type="text"
+            value={formData.gender}
+            onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+            placeholder="Enter gender"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Email <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            required
+            placeholder="Enter email"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
             Phone Number <span className="text-red-500">*</span>
           </label>
           <Input
             type="tel"
-            value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            value={formData.cellphone}
+            onChange={(e) => setFormData(prev => ({ ...prev, cellphone: e.target.value }))}
             required
-            placeholder="07X XXX XXXX"
+            placeholder="Enter phone number"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Purpose <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="text"
+            value={formData.purpose}
+            onChange={(e) => setFormData(prev => ({ ...prev, purpose: e.target.value }))}
+            required
+            placeholder="Enter purpose"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Request Date
+          </label>
+          <Input
+            type="datetime-local"
+            value={formData.request_date}
+            onChange={(e) => setFormData(prev => ({ ...prev, request_date: e.target.value }))}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Request Time
+          </label>
+          <Input
+            type="datetime-local"
+            value={formData.request_time}
+            onChange={(e) => setFormData(prev => ({ ...prev, request_time: e.target.value }))}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Institution
+          </label>
+          <select
+            value={formData.institution}
+            onChange={(e) => setFormData(prev => ({ ...prev, institution: e.target.value }))}
+            className="border rounded-lg p-2"
+          >
+            <option value="">Select Institution</option>
+            {institutions.map(inst => (
+              <option key={inst.id} value={inst.name}>
+                {inst.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Function
+          </label>
+          <select
+            value={formData.function}
+            onChange={(e) => setFormData(prev => ({ ...prev, function: e.target.value }))}
+            className="border rounded-lg p-2"
+          >
+            <option value="">Select Function</option>
+            {functions.map(func => (
+              <option key={func.id} value={func.name}>
+                {func.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Other People to Attend
+          </label>
+          <Input
+            type="text"
+            value={formData.other_people_to_attend}
+            onChange={(e) => setFormData(prev => ({ ...prev, other_people_to_attend: e.target.value }))}
+            placeholder="Enter names"
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium">
+            Other Ministry Staff
+          </label>
+          <Input
+            type="text"
+            value={formData.other_ministry_staff}
+            onChange={(e) => setFormData(prev => ({ ...prev, other_ministry_staff: e.target.value }))}
+            placeholder="Enter names"
           />
         </div>
       </div>
 
-      {/* Location */}
-      <div>
-        <label className="block mb-1 text-sm font-medium">Location</label>
-        <select
-          value={formData.location}
-          onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-          className="w-full border rounded-lg p-2"
-        >
-          {locations.map(loc => (
-            <option key={loc} value={loc}>{loc}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Message */}
-      <div>
-        <label className="block mb-1 text-sm font-medium">Message</label>
-        <textarea
-          value={formData.message}
-          onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-          rows={4}
-          className="w-full border rounded-lg p-2 resize-none"
-          placeholder="Enter your message"
-        />
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-          disabled={loading}
-        >
-          {loading ? 'Scheduling...' : 'Schedule Appointment'}
+      <div className="flex justify-between mt-6">
+        <Button type="button" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Submitting...' : 'Submit Appointment'}
         </Button>
       </div>
     </form>
   );
 };
 
-export default AddAppointmentForm; 
+export default AddAppointmentForm;

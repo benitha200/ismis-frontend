@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -6,7 +6,7 @@ import { X, Calendar, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
-function AddContractModal({ isOpen, onClose, onAdd }) {
+function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     contractNo: '',
@@ -24,6 +24,27 @@ function AddContractModal({ isOpen, onClose, onAdd }) {
     },
     endDate: ''
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        contractNo: initialData.contract_no || '',
+        title: initialData.contract_title || '',
+        supplier: initialData.supplier || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        amount: initialData.amount || '',
+        currency: initialData.currency || 'FRW',
+        administrator: initialData.contract_administrator || '',
+        startDate: initialData.start_date || '',
+        duration: {
+          value: initialData.duration_of_contract || '',
+          unit: 'Days' // Assuming the unit is Days, adjust if needed
+        },
+        endDate: initialData.contract_end_date || ''
+      });
+    }
+  }, [initialData, isOpen]);
 
   // Currency options
   const currencies = [
@@ -80,7 +101,24 @@ function AddContractModal({ isOpen, onClose, onAdd }) {
         throw new Error('Please enter a valid amount');
       }
 
-      await onAdd(formData);
+      // Transform formData to match the required structure
+      const transformedData = {
+        contract_no: formData.contractNo,
+        contract_title: formData.title,
+        supplier: formData.supplier,
+        email: formData.email,
+        phone: formData.phone,
+        amount: parseFloat(formData.amount),
+        currency: formData.currency,
+        contract_administrator: formData.administrator,
+        start_date: formData.startDate,
+        duration_of_contract: parseInt(formData.duration.value),
+        contract_end_date: formData.endDate,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await onAdd(transformedData);
       onClose();
       toast.success('Contract added successfully');
     } catch (error) {
@@ -174,7 +212,7 @@ function AddContractModal({ isOpen, onClose, onAdd }) {
               } p-6 text-left align-middle shadow-xl transition-all`}>
                 <div className="flex justify-between items-center mb-6">
                   <Dialog.Title className="text-xl font-bold">
-                    Add New Contract
+                    {initialData ? 'Edit Contract' : 'Add New Contract'}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
@@ -414,7 +452,7 @@ function AddContractModal({ isOpen, onClose, onAdd }) {
                       type="submit"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      Add Contract
+                      {initialData ? 'Update Contract' : 'Add Contract'}
                     </Button>
                   </div>
                 </form>
@@ -427,4 +465,4 @@ function AddContractModal({ isOpen, onClose, onAdd }) {
   );
 }
 
-export default AddContractModal; 
+export default AddContractModal;

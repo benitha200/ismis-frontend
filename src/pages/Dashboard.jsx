@@ -110,35 +110,35 @@ const Dashboard = () => {
       label: 'Clubs', 
       icon: Users, 
       color: 'bg-purple-100 text-purple-600',
-      path: '/clubs'
+      path: '/federations'
     },
     { 
       number: statsData.clubPlayers, 
       label: 'Club Players', 
       icon: Award, 
       color: 'bg-green-100 text-green-600',
-      path: '/club-players'
+      path: '/federations'
     },
     { 
       number: statsData.sportTeams, 
       label: 'Sport Teams', 
       icon: Building2, 
       color: 'bg-orange-100 text-orange-600',
-      path: '/sport-teams'
+      path: '/national-teams'
     },
     { 
       number: statsData.teamPlayers, 
       label: 'Team Players', 
       icon: Flag, 
       color: 'bg-green-100 text-green-600',
-      path: '/team-players'
+      path: '/national-teams'
     },
     { 
       number: statsData.officialsAndPlayers, 
       label: 'Officials & Players', 
       icon: Flag, 
       color: 'bg-green-100 text-green-600',
-      path: '/officials-players'
+      path: '/national-teams'
     }
   ];
 
@@ -156,7 +156,7 @@ const Dashboard = () => {
       label: 'Students', 
       icon: FileText, 
       color: 'bg-indigo-100 text-indigo-600',
-      path: '/students'
+      path: '/isonga-programs'
     },
     { 
       number: statsData.infrastructure, 
@@ -184,7 +184,7 @@ const Dashboard = () => {
       label: 'Employees', 
       icon: FileText, 
       color: 'bg-indigo-100 text-indigo-600',
-      path: '/employees'
+      path: '/employee'
     }
   ];
 
@@ -313,7 +313,7 @@ const Dashboard = () => {
                 <li key={index} className="flex justify-between items-center py-2">
                   <div>
                     <strong>{appointment.title}</strong>
-                    <p className="text-sm text-gray-500">{new Date(appointment.date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{new Date(appointment.request_date).toLocaleDateString()}</p>
                   </div>
                   <span className="text-sm text-gray-600">{renderAppointmentStatus(appointment.status)}</span>
                 </li>
@@ -336,7 +336,7 @@ const Dashboard = () => {
                 <li key={index} className="flex justify-between items-center py-2">
                   <div>
                     <strong>{appointment.title}</strong>
-                    <p className="text-sm text-gray-500">{new Date(appointment.date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{new Date(appointment.request_date).toLocaleDateString()}</p>
                   </div>
                   <span className="text-sm text-gray-600">{renderAppointmentStatus(appointment.status)}</span>
                 </li>

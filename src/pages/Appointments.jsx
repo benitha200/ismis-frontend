@@ -5,8 +5,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Search } from "react-feather";
 import { AlertCircle } from "lucide-react";
-
 import { Calendar, Loader2, Edit, Download, Trash2, AlertTriangle, Eye, X } from 'lucide-react';
+import AddAppointmentForm from "../components/forms/AddAppointmentForm"; // Import the form
 
 function Appointments() {
   const [appointments, setAppointments] = useState([]);
@@ -24,6 +24,9 @@ function Appointments() {
   // Delete confirmation modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+
+  // Add Appointment modal state
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   // Fetch appointments with optional filters
   const fetchAppointments = async () => {
@@ -69,8 +72,8 @@ function Appointments() {
 
     try {
       const formattedData = {
-        date: rescheduleData.date, // Use the formatted date (ISO 8601)
-        reason: rescheduleData.reason,
+        request_date: rescheduleData.date, // Use the formatted date (ISO 8601)
+        // reason: rescheduleData.reason,
       };
 
       const response = await axiosInstance.put(
@@ -113,6 +116,19 @@ function Appointments() {
     }
   };
 
+  const handleAddAppointment = async (newAppointment) => {
+    try {
+      console.log(newAppointment)
+      const response = await axiosInstance.post("/appointments", newAppointment);
+      setAppointments((prev) => [...prev, response.data]);
+      alert("Appointment added successfully!");
+      setAddModalOpen(false);
+    } catch (error) {
+      console.error("Error adding appointment:", error);
+      alert("Failed to add appointment.");
+    }
+  };
+
   // Render status badge
   const renderStatusBadge = (status) => {
     const statusClass = {
@@ -149,6 +165,7 @@ function Appointments() {
           />
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         </div>
+        <Button onClick={() => setAddModalOpen(true)}>Add Appointment</Button>
       </div>
 
       {/* Appointments Table */}
@@ -348,6 +365,38 @@ function Appointments() {
                       Confirm Delete
                     </Button>
                   </div>
+                </div>
+              </Dialog.Panel>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* Add Appointment Modal */}
+      <Transition show={addModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setAddModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <Dialog.Title className="text-lg font-medium text-gray-900">Add Appointment</Dialog.Title>
+                <div className="mt-4">
+                  <AddAppointmentForm onSubmit={handleAddAppointment} />
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button variant="outline" onClick={() => setAddModalOpen(false)}>
+                    Close
+                  </Button>
                 </div>
               </Dialog.Panel>
             </div>

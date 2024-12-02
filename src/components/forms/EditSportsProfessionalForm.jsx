@@ -4,7 +4,7 @@ import { Input } from '../ui/input';
 import { toast } from 'react-hot-toast';
 import axios from '../../utils/axiosInstance'; // Ensure this import points to the correct file
 
-const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
+const EditSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
   const [idType, setIdType] = useState('nid');
   const [idNumber, setIdNumber] = useState('');
   const [passportExpiry, setPassportExpiry] = useState('');
@@ -119,13 +119,13 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
       console.log(submitData);
       const response = await axios.post('/official-referees', submitData); // Adjust the endpoint as per your API
       if (response.status === 200) {
-        toast.success('Professional added successfully');
+        toast.success('Professional Edited successfully');
         // Call onSubmit if provided
         if (typeof onSubmit === 'function') {
           onSubmit(response.data); // Pass back the response data if needed
         }
       } else {
-        toast.error('Failed to add professional');
+        toast.error('Failed to Edit professional');
       }
     } catch (error) {
       toast.error('An error occurred while submitting the form');
@@ -258,7 +258,7 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
           </div>
         </div>
 
-        {/* Additional Fields */}
+        {/* Edititional Fields */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Marital Status</label>
@@ -300,4 +300,4 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
   );
 };
 
-export default AddSportsProfessionalForm;
+export default EditSportsProfessionalForm;

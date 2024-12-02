@@ -12,11 +12,11 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import axiosInstance from '../utils/axiosInstance'; // Import the axios instance
 
-// Define the Table components if they are not from a library
-const Table = ({ children }) => <table className="min-w-full">{children}</table>;
-const TableHeader = ({ children }) => <thead>{children}</thead>;
-const TableRow = ({ children }) => <tr>{children}</tr>;
-const TableHead = ({ children }) => <th className="px-4 py-2">{children}</th>;
+// Define the Table components
+const Table = ({ children }) => <table className="min-w-full table-auto">{children}</table>;
+const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>;
+const TableRow = ({ children }) => <tr className="hover:bg-gray-100">{children}</tr>;
+const TableHead = ({ children }) => <th className="px-4 py-2 text-left">{children}</th>;
 const TableBody = ({ children }) => <tbody>{children}</tbody>;
 const TableCell = ({ children }) => <td className="px-4 py-2">{children}</td>;
 
@@ -33,12 +33,13 @@ const Training = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [trainingToDelete, setTrainingToDelete] = useState(null);
   const [trainingToEdit, setTrainingToEdit] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch training data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('/trainings'); // Replace with your endpoint
+        const response = await axiosInstance.get('/trainings');
         setTrainings(response.data);
         setFilteredTrainings(response.data);
         setIsLoading(false);
@@ -54,20 +55,29 @@ const Training = () => {
     fetchData();
   }, []);
 
+  // Filter trainings based on search query
+  useEffect(() => {
+    const filtered = trainings.filter((training) =>
+      training.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredTrainings(filtered);
+    setCurrentPage(1); // Reset to first page when search query changes
+  }, [searchQuery, trainings]);
+
   // Handle adding or editing training
   const handleAddOrEditTraining = async (data) => {
     setIsSubmitting(true);
     try {
       let response;
       if (trainingToEdit) {
-        response = await axiosInstance.put(`/trainings/${trainingToEdit.id}`, data); // Edit endpoint
+        response = await axiosInstance.put(`/trainings/${trainingToEdit.id}`, data);
         const updatedTrainings = trainings.map((t) =>
           t.id === trainingToEdit.id ? response.data : t
         );
         setTrainings(updatedTrainings);
         setFilteredTrainings(updatedTrainings);
       } else {
-        response = await axiosInstance.post('/trainings', data); // Add endpoint
+        response = await axiosInstance.post('/trainings', data);
         const newTrainings = [...trainings, response.data];
         setTrainings(newTrainings);
         setFilteredTrainings(newTrainings);
@@ -92,7 +102,7 @@ const Training = () => {
   const handleDeleteConfirm = async () => {
     setIsSubmitting(true);
     try {
-      await axiosInstance.delete(`/trainings/${trainingToDelete.id}`); // Delete endpoint
+      await axiosInstance.delete(`/trainings/${trainingToDelete.id}`);
       const updatedTrainings = trainings.filter(t => t.id !== trainingToDelete.id);
       setTrainings(updatedTrainings);
       setFilteredTrainings(updatedTrainings);
@@ -117,7 +127,7 @@ const Training = () => {
   }
 
   return (
-    <div className={`p-6 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {message && (
         <Message
           type={message.type}
@@ -127,20 +137,24 @@ const Training = () => {
       )}
 
       {/* Search Bar */}
-      <div className="flex items-center gap-4 mb-4">
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Search trainings..."
           className="border p-2 rounded-md w-full"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Button
-          variant="default"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Add Training
-        </Button>
       </div>
+
+      {/* Add Training Button */}
+      <Button
+        variant="default"
+        onClick={() => setShowAddModal(true)}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add Training
+      </Button>
 
       {/* Trainings Table */}
       <Table>
@@ -180,7 +194,7 @@ const Training = () => {
       </Table>
 
       {/* Pagination */}
-      <div className="flex justify-between mt-4">
+      <div className="flex justify-between mt-6">
         <div>
           Page {currentPage} of {totalPages}
         </div>

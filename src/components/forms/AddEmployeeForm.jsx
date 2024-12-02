@@ -3,7 +3,7 @@ import { createEmployee, updateEmployee } from '../../services/employee';
 
 const AddEmployeeForm = ({ isEditing, onSuccess = () => {}, onCancel, initialData }) => {
   const [formData, setFormData] = useState({
-    id: '',
+    id: '', // Ensure we initialize the id
     photoPassport: 'https://dashboard.codeparrot.ai/api/assets/Z0qh9bLVBCaRbmR0=photo&width=100&height=100',
     firstName: 'John',
     lastName: 'Doe',
@@ -26,12 +26,12 @@ const AddEmployeeForm = ({ isEditing, onSuccess = () => {}, onCancel, initialDat
     contactPhone: '0987654321',
   });
 
+  // Initialize form data with initialData if editing
   useEffect(() => {
     if (initialData) {
-      console.log('Setting initial data:', initialData); // Debugging: Log initial data
       setFormData({
-        id: initialData.id || '',
-        photoPassport: initialData.photo_passport || 'https://dashboard.codeparrot.ai/api/assets/Z0qh97LVBCaRbmR1=photo&width=100&height=100',
+        id: initialData.id || '', // Ensure id is set
+        photoPassport: initialData.photo_passport || '',
         firstName: initialData.firstname || '',
         lastName: initialData.lastname || '',
         gender: initialData.gender || '',
@@ -63,6 +63,11 @@ const AddEmployeeForm = ({ isEditing, onSuccess = () => {}, onCancel, initialDat
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isEditing && !formData.id) {
+      alert('Employee ID is required to update!');
+      return;
+    }
+
     const transformedData = {
       photo_passport: formData.photoPassport,
       firstname: formData.firstName,
@@ -70,7 +75,7 @@ const AddEmployeeForm = ({ isEditing, onSuccess = () => {}, onCancel, initialDat
       gender: formData.gender,
       email: formData.email,
       phone: formData.phone,
-      martial_status: formData.maritalStatus,
+      marital_status: formData.maritalStatus,
       address_province: formData.province,
       address_district: formData.district,
       address_sector: formData.sector,
@@ -88,33 +93,27 @@ const AddEmployeeForm = ({ isEditing, onSuccess = () => {}, onCancel, initialDat
 
     try {
       if (isEditing) {
-        if (!formData.id) {
-          throw new Error('Employee ID is undefined. Cannot update employee.');
-        }
-        console.log('Updating Employee with ID:', formData.id); // Debugging: Log ID before update
-        await updateEmployee(formData.id, transformedData);
+        console.log('Updating employee with ID:', formData.id);
+        await updateEmployee(formData.id, transformedData); // Call updateEmployee here
         alert('Employee updated successfully!');
       } else {
         await createEmployee(transformedData);
         alert('Employee created successfully!');
       }
+
       if (typeof onSuccess === 'function') {
-        onSuccess();
+        onSuccess(); // Trigger success callback
       }
     } catch (error) {
-      console.error('Error:', error);
-      if (error.response) {
-        alert(`An error occurred: ${error.response.data.message || error.message}`);
-      } else {
-        alert(`An error occurred: ${error.message || error}`);
-      }
+      console.error('Error updating employee:', error);
+      alert(`Failed to update employee: ${error.message}`);
     }
   };
 
   return (
-    <div className="max-h-[80vh] overflow-y-auto p-4">
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Employee Details */}
+    <div>
+      {/* Form rendering */}
+      <form onSubmit={handleSubmit}>   {/* Employee Details */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium border-b pb-2">Employee Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

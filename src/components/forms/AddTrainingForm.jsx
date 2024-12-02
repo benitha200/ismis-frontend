@@ -1,64 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
 import Select from 'react-select';
+import axiosInstance from '../../utils/axiosInstance'; // Import the axios instance
 
 const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
-  const [availableProfessionals] = useState([
-    {
-      value: 1,
-      label: 'John Doe',
-      details: {
-        type: 'Player',
-        federation: 'FERWAFA',
-        club: 'APR FC',
-      }
-    },
-    {
-      value: 2,
-      label: 'Jane Smith',
-      details: {
-        type: 'Staff',
-        federation: 'FERWABA',
-        club: 'Patriots',
-      }
-    }
-    // ... more professionals
-  ]);
+  // Initialize the state for employees (participants)
+  const [availableProfessionals, setAvailableProfessionals] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Fetch employees from the API
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setLoading(true);
+      setError(null); // Reset error state before making the request
+      try {
+        const response = await axiosInstance.get('/employees'); // Ensure this endpoint is correct
+        console.log('API response:', response); // Check the structure of the response
+
+        // Check if the response contains the "employees" key and it's an array
+        if (response.data && Array.isArray(response.data.employees)) {
+          const employees = response.data.employees.map((employee) => ({
+            value: employee.email, // Use employee email or another unique identifier as the 'value'
+            label: `${employee.firstname} ${employee.lastname}`, // Display name
+            details: {
+              type: employee.employee_type, // Add any additional details you need from the employee object
+              email: employee.email, // Store email as additional information
+            },
+          }));
+          setAvailableProfessionals(employees); // Set the employee data
+        } else {
+          setError('Failed to load employees. Invalid data format.');
+        }
+      } catch (err) {
+        console.error('Error fetching employees:', err); // Log the error for debugging
+        setError('Failed to load employees. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []); // Empty dependency array ensures this runs once when the component mounts
+
+  // Initialize form data
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
-    period: {
-      startDate: initialData?.period?.startDate || '',
-      endDate: initialData?.period?.endDate || ''
-    },
+    fromDate: initialData?.startDate || '', // Ensure startDate defaults to empty string
+    toDate: initialData?.endDate || '', // Ensure endDate defaults to empty string
     organiser: initialData?.organiser || '',
-    status: initialData?.status || '',
-    participants: initialData?.participants || [],
-    description: initialData?.description || '',
-    venue: initialData?.venue || '',
-    trainingType: initialData?.trainingType || ''
+    participants: initialData?.participants || [], // Ensure participants is always an array
   });
 
+  // Update form data when initialData changes
   useEffect(() => {
     if (initialData) {
       setFormData({
         title: initialData.title || '',
-        period: {
-          startDate: initialData.period?.startDate || '',
-          endDate: initialData.period?.endDate || ''
-        },
+        fromDate: initialData.startDate || '',
+        toDate: initialData.endDate || '',
         organiser: initialData.organiser || '',
-        status: initialData.status || '',
         participants: initialData.participants || [],
-        description: initialData.description || '',
-        venue: initialData.venue || '',
-        trainingType: initialData.trainingType || ''
       });
     }
   }, [initialData]);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -68,24 +73,26 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
         ...prev,
         [parent]: {
           ...prev[parent],
-          [child]: value
-        }
+          [child]: value,
+        },
       }));
     } else {
       setFormData(prev => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
 
+  // Handle multi-select changes for participants
   const handleParticipantChange = (selectedOptions) => {
     setFormData(prev => ({
       ...prev,
-      participants: selectedOptions || []
+      participants: selectedOptions ? selectedOptions.map(option => option.value) : [], // Ensure participants is always an array of ids
     }));
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -93,35 +100,33 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
 
     try {
       // Validation
-      if (!formData.title || !formData.period.startDate || !formData.organiser) {
+      if (!formData.title || !formData.fromDate || !formData.organiser) {
         throw new Error('Please fill in all required fields');
       }
 
-      // Transform participants data before submission
+      // Prepare submission data
       const submissionData = {
-        ...formData,
-        participants: formData.participants.map(p => ({
-          id: p.value,
-          name: p.label,
-          ...p.details
-        }))
+        title: formData.title,
+        fromDate: formData.fromDate,
+        toDate: formData.toDate,
+        organiser: formData.organiser,
+        participants: formData.participants, // Just the array of participant ids
       };
 
-      await onSubmit(submissionData);
-      
+      // If there's initialData, it's an update, otherwise a create
+      if (initialData) {
+        await onSubmit({ ...submissionData, id: initialData.id }); // For edit, include the id
+      } else {
+        await onSubmit(submissionData); // For add, just send the data
+      }
+
       // Reset form
       setFormData({
         title: '',
-        period: {
-          startDate: '',
-          endDate: ''
-        },
+        fromDate: '',
+        toDate: '',
         organiser: '',
-        status: '',
         participants: [],
-        description: '',
-        venue: '',
-        trainingType: ''
       });
     } catch (err) {
       setError(err.message);
@@ -131,7 +136,7 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
   };
 
   const formTitle = initialData ? 'Edit Training' : 'Add Training';
-  const submitButtonText = initialData 
+  const submitButtonText = initialData
     ? (isSubmitting ? 'Saving...' : 'Save Changes')
     : (isSubmitting ? 'Adding...' : 'Add Training');
 
@@ -168,8 +173,8 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
           </label>
           <input
             type="date"
-            name="period.startDate"
-            value={formData.period.startDate}
+            name="fromDate"
+            value={formData.fromDate}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             disabled={loading}
@@ -181,12 +186,12 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
           </label>
           <input
             type="date"
-            name="period.endDate"
-            value={formData.period.endDate}
+            name="toDate"
+            value={formData.toDate}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             disabled={loading}
-            min={formData.period.startDate}
+            min={formData.fromDate}
           />
         </div>
       </div>
@@ -210,75 +215,6 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
         </select>
       </div>
 
-      {/* Training Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Training Type
-        </label>
-        <select
-          name="trainingType"
-          value={formData.trainingType}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          disabled={loading}
-        >
-          <option value="">Select Type</option>
-          <option value="Technical">Technical</option>
-          <option value="Tactical">Tactical</option>
-          <option value="Physical">Physical</option>
-          <option value="Mental">Mental</option>
-        </select>
-      </div>
-
-      {/* Venue */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Venue
-        </label>
-        <input
-          type="text"
-          name="venue"
-          value={formData.venue}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter training venue"
-          disabled={loading}
-        />
-      </div>
-
-      {/* Participants */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Number of Participants
-        </label>
-        <input
-          type="number"
-          name="participants"
-          value={formData.participants}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter number of participants"
-          disabled={loading}
-          min="0"
-        />
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={4}
-          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter training description"
-          disabled={loading}
-        />
-      </div>
-
       {/* Participants Multi-select */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -290,42 +226,12 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
           options={availableProfessionals}
           className="basic-multi-select"
           classNamePrefix="select"
-          value={formData.participants}
+          value={formData.participants.map(id => availableProfessionals.find(p => p.value === id))}
           onChange={handleParticipantChange}
           placeholder="Select participants..."
           isDisabled={loading}
-          formatOptionLabel={({ label, details }) => (
-            <div className="flex justify-between items-center">
-              <span>{label}</span>
-              <span className="text-xs text-gray-500">
-                {details.type} - {details.club}
-              </span>
-            </div>
-          )}
         />
       </div>
-
-      {/* Selected Participants Summary */}
-      {formData.participants.length > 0 && (
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
-            Selected Participants ({formData.participants.length})
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {formData.participants.map((participant) => (
-              <div 
-                key={participant.value}
-                className="bg-white px-3 py-1 rounded-full border text-sm flex items-center gap-2"
-              >
-                <span>{participant.label}</span>
-                <span className="text-xs text-gray-500">
-                  {participant.details.type}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Action Buttons */}
       <div className="flex justify-end space-x-4 mt-6 pt-4 border-t sticky bottom-0 bg-white">
@@ -340,7 +246,7 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
         <button
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          disabled={isSubmitting}
+          disabled={isSubmitting || loading}
         >
           {submitButtonText}
         </button>
@@ -349,4 +255,4 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
   );
 };
 
-export default AddTrainingForm; 
+export default AddTrainingForm;

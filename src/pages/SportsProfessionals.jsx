@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/Table';
 import axiosInstance from '../utils/axiosInstance';
 import Modal from '../components/ui/Modal';
+import AddSportsProfessionalForm from '../components/forms/AddSportsProfessionalForm';
 
 const SportsProfessionals = () => {
   const [professionals, setProfessionals] = useState([]);
@@ -29,6 +30,8 @@ const SportsProfessionals = () => {
   const [editingFunction, setEditingFunction] = useState(null);
   const [addingFunction, setAddingFunction] = useState(null);
   const [editingProfessional, setEditingProfessional] = useState(null);
+  const [addingProfessional, setAddingProfessional] = useState(null);
+  
 
   useEffect(() => {
     const fetchDisciplines = async () => {
@@ -60,7 +63,7 @@ const SportsProfessionals = () => {
     const fetchProfessionals = async () => {
       try {
         setIsLoading(true);
-        const response = await axiosInstance.get('/professionals');
+        const response = await axiosInstance.get('/official-referees');
         setProfessionals(response.data);
         setFilteredProfessionals(response.data);
         setIsLoading(false);
@@ -182,11 +185,11 @@ const SportsProfessionals = () => {
   // Handlers for Sports Professionals
   const handleAddProfessional = async () => {
     try {
-      const response = await axiosInstance.post('/professionals', professionalForm);
+      const response = await axiosInstance.post('/official-referees', professionals);
       setProfessionals((prevState) => [...prevState, response.data]);
       setFilteredProfessionals((prevState) => [...prevState, response.data]);
       toast.success('Professional added successfully');
-      setProfessionalForm({ name: '', username: '', phone: '', nationality: '' });
+      setAddingProfessional({ name: '', username: '', phone: '', nationality: '' });
     } catch (error) {
       toast.error('Error adding professional');
     }
@@ -194,7 +197,7 @@ const SportsProfessionals = () => {
 
   const handleEditProfessional = async () => {
     try {
-      const response = await axiosInstance.put(`/professionals/${editingProfessional.id}`, professionalForm);
+      const response = await axiosInstance.put(`/official-referees/${editingProfessional.id}`, professionalForm);
       setProfessionals((prevState) =>
         prevState.map((p) => (p.id === editingProfessional.id ? response.data : p))
       );
@@ -211,7 +214,7 @@ const SportsProfessionals = () => {
 
   const handleDeleteProfessional = async (professional) => {
     try {
-      await axiosInstance.delete(`/professionals/${professional.id}`);
+      await axiosInstance.delete(`/official-referees/${professional.id}`);
       setProfessionals((prevState) => prevState.filter((p) => p.id !== professional.id));
       setFilteredProfessionals((prevState) => prevState.filter((p) => p.id !== professional.id));
       toast.success('Professional deleted successfully');
@@ -262,31 +265,34 @@ const SportsProfessionals = () => {
 
   const renderProfessionalRow = (professional) => (
     <tr key={professional.id}>
-      <td>{professional.name}</td>
-      <td>{professional.username}</td>
-      <td>{professional.phone}</td>
+      <td>{professional.firstName}</td>
+      <td>{professional.lastName}</td>
+      <td>{professional.function}</td>
       <td>{professional.nationality}</td>
       <td>
+        {/* Edit Button */}
         <button
           onClick={() => {
-            setEditingProfessional(professional);
-            setProfessionalForm({
-              name: professional.name,
-              username: professional.username,
-              phone: professional.phone,
-              nationality: professional.nationality,
-            });
+            setEditingProfessional(editingProfessional); // Set the professional data to edit
+            setEditingProfessional(true); // Open the modal for editing
           }}
+          className="p-2 text-blue-500 hover:bg-blue-100 rounded-md focus:outline-none"
+          title="Edit Professional" // Tooltip text when hovering
         >
-          <Edit />
+          <Edit className="w-5 h-5" />
         </button>
-        <button onClick={() => handleDeleteProfessional(professional)}>
-          <Trash2 />
+  
+        {/* Delete Button */}
+        <button
+          onClick={() => handleDeleteProfessional(professional)}
+          className="p-2 text-red-500 hover:bg-red-100 rounded-md focus:outline-none ml-2"
+          title="Delete Professional" // Tooltip text when hovering
+        >
+          <Trash2 className="w-5 h-5" />
         </button>
       </td>
     </tr>
   );
-
   return (
     <div className="space-y-4">
       {/* Tabs for navigation */}
@@ -307,15 +313,15 @@ const SportsProfessionals = () => {
         <div className="space-y-4">
           <div className="flex justify-between">
             <h3 className="text-xl font-semibold">Sports Professionals</h3>
-            <Button onClick={() => setEditingProfessional(null)}>Add New</Button>
+            <Button onClick={() => setAddingProfessional(true)}>Add New</Button>
             
           </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Phone</TableHead>
+                <TableHead>Firstname</TableHead>
+                <TableHead>LastName</TableHead>
                 <TableHead>Nationality</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -458,6 +464,65 @@ const SportsProfessionals = () => {
       )}
 
 
+
+
+      {/* add const [editingProfessional, setEditingProfessional] = useState(null);
+   Modal */}
+      {/* {addingProfessional !== null && (
+        <Modal
+          isOpen={true}
+          onClose={() => setAddingProfessional(null)}
+          title={addingProfessional ? 'Add Professional' : 'Edit Professional'}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (addingDiscipline) {
+                handleAddDiscipline();
+              } else {
+                handleEditDiscipline();
+              }
+            }}
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block font-semibold">Name</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={disciplineForm.name}
+                  onChange={(e) => setDisciplineForm({ ...disciplineForm, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block font-semibold">Type</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={disciplineForm.type}
+                  onChange={(e) => setDisciplineForm({ ...disciplineForm, type: e.target.value })}
+                  required
+                />
+              </div>
+              <Button type="submit">Save</Button>
+            </div>
+          </form>
+        </Modal>
+      )} */}
+
+    <Modal isOpen={addingProfessional} onClose={() => setAddingProfessional(false)} title="Add Professional">
+         
+<AddSportsProfessionalForm
+        isOpen={professionals}
+        onClose={() => {
+          setAddingProfessional(false);
+          setEditingProfessional(false); // Clear edit state on close
+        }}
+        onAdd={handleAddProfessional }
+        sport={professionals} // Pass sportToEdit for editing
+      />
+      </Modal>
 
 
       {/* Function Modal */}

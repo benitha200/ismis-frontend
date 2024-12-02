@@ -55,7 +55,7 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
       ...prev,
       [moduleId]: {
         ...prev[moduleId],
-        [permission]: !prev[moduleId][permission]
+        [permission]: !prev[moduleId]?.[permission] // Safe access with optional chaining
       }
     }));
   };
@@ -69,10 +69,15 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
     }
 
     try {
+      // Create an array of the module IDs that have permissions enabled
+      const accessibleModules = Object.keys(permissions)
+        .filter(moduleId => permissions[moduleId]?.Add || permissions[moduleId]?.Edit || permissions[moduleId]?.Delete) // Safe check with optional chaining
+        .join(", "); // Join module IDs into a string
+
       // Prepare the data to send in the POST request
       const newGroup = {
         name: groupName,
-        permissions: permissions,
+        accessibleModules: accessibleModules, // string of module IDs or names
       };
 
       // Get token from localStorage or auth context
@@ -131,9 +136,7 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel
-                className={`w-full max-w-4xl transform overflow-hidden rounded-lg ${
-                  isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'
-                } p-6 text-left align-middle shadow-xl transition-all`}
+                className={`w-full max-w-4xl transform overflow-hidden rounded-lg ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'} p-6 text-left align-middle shadow-xl transition-all`}
               >
                 <div className="flex justify-between items-center mb-6">
                   <Dialog.Title className="text-xl font-bold">Add New Group</Dialog.Title>
@@ -199,8 +202,8 @@ function AddGroupModal({ isOpen, onClose, onAdd }) {
                                 <td key={permission} className="px-4 py-2 text-center">
                                   <input
                                     type="checkbox"
-                                    checked={permissions[module.id]?.[permission] || false}
-                                    onChange={() => handlePermissionChange(module.id, permission)}
+                                    checked={permissions[module.id]?.[permission] || false} // Safe check with optional chaining
+                                    onChange={() => handlePermissionChange(module.id, permission)} // Update specific permission
                                     className="h-4 w-4 rounded border-gray-300"
                                   />
                                 </td>

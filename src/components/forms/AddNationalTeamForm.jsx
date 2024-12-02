@@ -10,7 +10,7 @@ const AddNationalTeamForm = ({ initialData = null, onSubmitSuccess }) => {
     competition: initialData?.competition || 'World Cup Qualifiers',
     city: initialData?.city || 'Kigali',
     country: initialData?.country || 'Rwanda',
-    games: initialData?.games || [{ stadium: 'Amahoro National Stadium' }]
+    games: [{ stadium: 'Amahoro National Stadium' }]
   });
 
   const [federations, setFederations] = useState([]);
@@ -66,6 +66,7 @@ const AddNationalTeamForm = ({ initialData = null, onSubmitSuccess }) => {
     try {
       let response;
       if (initialData && initialData.id) {
+        console.log(formData)
         response = await axiosInstance.put(`/national-teams/${initialData.id}`, formData);
       } else {
         response = await axiosInstance.post('/national-teams', formData);

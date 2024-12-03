@@ -80,17 +80,79 @@ function Employee() {
   };
 
   const handleEditSubmit = async (updatedEmployee) => {
+    console.log('Updating employee:', updatedEmployee);
+
+    // Validate that the employee has an ID
+    if (!updatedEmployee.id) {
+      toast.error('Employee ID is missing');
+      console.error('Cannot update employee: ID is undefined', updatedEmployee);
+      return;
+    }
+
     try {
-      const updated = await updateEmployee(updatedEmployee);
-      setEmployeesData(prev => 
-        prev.map(emp => 
+      // Ensure all required fields are present
+      const cleanedEmployee = {
+        id: updatedEmployee.id,
+        firstname: updatedEmployee.firstname,
+        lastname: updatedEmployee.lastname,
+        email: updatedEmployee.email,
+        phone: updatedEmployee.phone,
+        nationalId: updatedEmployee.nationalId,
+        
+        // Employment Details
+        startDate: updatedEmployee.startDate,
+        employeeStatus: updatedEmployee.employeeStatus,
+        employeeType: updatedEmployee.employeeType,
+        department: updatedEmployee.department,
+        supervisor: updatedEmployee.supervisor,
+        departmentSupervisor: updatedEmployee.departmentSupervisor,
+      
+        // Address Information
+        addressProvince: updatedEmployee.addressProvince,
+        addressDistrict: updatedEmployee.addressDistrict,
+        addressSector: updatedEmployee.addressSector,
+        addressCell: updatedEmployee.addressCell,
+        addressVillage: updatedEmployee.addressVillage,
+      
+        // Emergency Contact
+        personOfContactFirstname: updatedEmployee.personOfContactFirstname,
+        personOfContactLastname: updatedEmployee.personOfContactLastname,
+        personOfContactRelationship: updatedEmployee.personOfContactRelationship,
+        personOfContactPhone: updatedEmployee.personOfContactPhone,
+      
+        // Profile Picture (if applicable)
+        passportPicture: updatedEmployee.passportPicture,
+      
+        // Spread remaining fields to capture any additional data
+        ...updatedEmployee
+      };
+
+      console.log('Cleaned employee data:', cleanedEmployee);
+
+      const updated = await updateEmployee(cleanedEmployee);
+
+      setEmployeesData(prev =>
+        prev.map(emp =>
           emp.id === updated.id ? updated : emp
         )
       );
+
       setIsEditModalOpen(false);
       toast.success('Employee updated successfully');
     } catch (error) {
-      toast.error('Failed to update employee');
+      console.error('Full error details:', error);
+
+      // More detailed error handling
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        toast.error(`Update failed: ${error.response.data.message || 'Server error'}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast.error('No response received from server');
+      } else {
+        // Something happened in setting up the request
+        toast.error('Error preparing update request');
+      }
     }
   };
 
@@ -128,10 +190,10 @@ function Employee() {
         {/* Personal Information */}
         <div className="space-y-4">
           <h3 className="font-medium text-lg border-b pb-2">Personal Information</h3>
-          
+
           <div className="mb-4">
-            <img 
-              src={employee.passportPicture || `https://dashboard.codeparrot.ai/api/assets/Z0q__nFEV176CUaS=${employee.id}&w=128&h=128`} 
+            <img
+              src={employee.passportPicture || `https://dashboard.codeparrot.ai/api/assets/Z0q__nFEV176CUaS=${employee.id}&w=128&h=128`}
               alt={employee.names}
               className="w-32 h-32 rounded-lg object-cover"
             />
@@ -156,11 +218,10 @@ function Employee() {
             <div>
               <label className="text-sm text-gray-500">Status</label>
               <p>
-                <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                  employee.employee_status === 'Active' 
+                <span className={`inline-flex px-2 py-1 text-xs rounded-full ${employee.employee_status === 'Active'
                     ? 'bg-green-100 text-green-800'
                     : 'bg-red-100 text-red-800'
-                }`}>
+                  }`}>
                   {employee.employee_status}
                 </span>
               </p>
@@ -187,7 +248,7 @@ function Employee() {
         {/* Employment Details */}
         <div className="space-y-4">
           <h3 className="font-medium text-lg border-b pb-2">Employment Details</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-gray-500">Department</label>
@@ -208,7 +269,7 @@ function Employee() {
         {/* Address Information */}
         <div className="space-y-4">
           <h3 className="font-medium text-lg border-b pb-2">Address Information</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-gray-500">Province</label>
@@ -240,7 +301,7 @@ function Employee() {
         {/* Emergency Contact */}
         <div className="space-y-4">
           <h3 className="font-medium text-lg border-b pb-2">Emergency Contact</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-gray-500">Contact Name</label>
@@ -347,12 +408,11 @@ function Employee() {
                         <td className="px-4 py-3 text-sm">{`${employee.firstname} ${employee.lastname}`}</td>
                         <td className="px-4 py-3 text-sm">{employee.startDate}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                            employee.employeeStatus === 'Active' 
+                          <span className={`inline-flex px-2 py-1 text-xs rounded-full ${employee.employeeStatus === 'Active'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
-                          {employee.employee_status}
+                            }`}>
+                            {employee.employee_status}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm">{employee.employee_type}</td>
@@ -445,9 +505,8 @@ function Employee() {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              className={`px-4 py-2 rounded-md transition-colors duration-200 ${
-                activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
+              className={`px-4 py-2 rounded-md transition-colors duration-200 ${activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                }`}
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
@@ -479,9 +538,9 @@ function Employee() {
 
       {/* Delete Confirmation Modal */}
       <Transition appear show={isDeleteModalOpen} as={Fragment}>
-        <Dialog 
-          as="div" 
-          className="relative z-50" 
+        <Dialog
+          as="div"
+          className="relative z-50"
           onClose={() => setIsDeleteModalOpen(false)}
         >
           <Transition.Child
@@ -516,7 +575,7 @@ function Employee() {
                   </div>
 
                   <p className="text-sm text-gray-500 mb-4">
-                    Are you sure you want to delete employee "{employeeToDelete?.names}"? 
+                    Are you sure you want to delete employee "{employeeToDelete?.names}"?
                     This action cannot be undone.
                   </p>
 
@@ -543,9 +602,9 @@ function Employee() {
 
       {/* View Employee Modal */}
       <Transition appear show={isViewModalOpen} as={Fragment}>
-        <Dialog 
-          as="div" 
-          className="relative z-50" 
+        <Dialog
+          as="div"
+          className="relative z-50"
           onClose={() => setIsViewModalOpen(false)}
         >
           <Transition.Child

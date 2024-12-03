@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -6,8 +6,9 @@ import { X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { rwandaLocations } from '../data/rwandaLocations';
 import toast from 'react-hot-toast';
+import axiosInstance from '../utils/axiosInstance';
 
-function AddAcademyModal({ isOpen, onClose, onAdd }) {
+function AddAcademyModal({ isOpen, onClose, onAdd, academyData = null }) {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
     name: '',
@@ -27,6 +28,29 @@ function AddAcademyModal({ isOpen, onClose, onAdd }) {
       phone: ''
     }
   });
+
+  useEffect(() => {
+    if (academyData) {
+      setFormData({
+        name: academyData.name || '',
+        domain: academyData.domain || '',
+        sportsCategory: academyData.category || '',
+        location: {
+          province: academyData.location_province || '',
+          district: academyData.location_district || '',
+          sector: academyData.location_sector || '',
+          cell: academyData.location_cell || '',
+          village: academyData.location_village || ''
+        },
+        legalRepresentative: {
+          name: academyData.legalRepresentativeName || '',
+          gender: academyData.legalRepresentativeGender || '',
+          email: academyData.legalRepresentativeEmail || '',
+          phone: academyData.legalRepresentativePhone || ''
+        }
+      });
+    }
+  }, [academyData]);
 
   // Location states
   const [availableDistricts, setAvailableDistricts] = useState([]);
@@ -157,9 +181,34 @@ function AddAcademyModal({ isOpen, onClose, onAdd }) {
         throw new Error('Please enter a valid email address');
       }
 
-      await onAdd(formData);
+      // Transform formData to match the required format
+      const transformedData = {
+        name: formData.name,
+        domain: formData.domain,
+        category: formData.sportsCategory,
+        location_province: formData.location.province,
+        location_district: formData.location.district,
+        location_sector: formData.location.sector,
+        location_cell: formData.location.cell,
+        location_village: formData.location.village,
+        legalRepresentativeName: formData.legalRepresentative.name,
+        legalRepresentativeGender: formData.legalRepresentative.gender,
+        legalRepresentativeEmail: formData.legalRepresentative.email,
+        legalRepresentativePhone: formData.legalRepresentative.phone
+      };
+
+      if (academyData && academyData.id) {
+        // Update existing academy
+        await axiosInstance.put(`/academies/${academyData.id}`, transformedData);
+        toast.success('Academy updated successfully');
+      } else {
+        // Add new academy
+        await axiosInstance.post('/academies', transformedData);
+        toast.success('Academy added successfully');
+      }
+
+      onAdd(transformedData);
       onClose();
-      toast.success('Academy added successfully');
     } catch (error) {
       toast.error(error.message);
     }
@@ -196,7 +245,7 @@ function AddAcademyModal({ isOpen, onClose, onAdd }) {
               } p-6 text-left align-middle shadow-xl transition-all`}>
                 <div className="flex justify-between items-center mb-6">
                   <Dialog.Title className="text-xl font-bold">
-                    Add New Academy
+                    {academyData ? 'Edit Academy' : 'Add New Academy'}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
@@ -417,6 +466,17 @@ function AddAcademyModal({ isOpen, onClose, onAdd }) {
                     </div>
                   </div>
 
+                  {/* Placeholder Image */}
+                  <div className="flex justify-center">
+                    <img
+                      src="https://dashboard.codeparrot.ai/api/assets/Z07tHnFEV176CUq1&text=Academy+Image"
+                      alt="Placeholder"
+                      width="200"
+                      height="150"
+                      className="rounded-lg shadow-md"
+                    />
+                  </div>
+
                   {/* Action Buttons */}
                   <div className="flex justify-end space-x-4 pt-4">
                     <Button
@@ -430,7 +490,7 @@ function AddAcademyModal({ isOpen, onClose, onAdd }) {
                       type="submit"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      Add Academy
+                      {academyData ? 'Update Academy' : 'Add Academy'}
                     </Button>
                   </div>
                 </form>
@@ -443,4 +503,4 @@ function AddAcademyModal({ isOpen, onClose, onAdd }) {
   );
 }
 
-export default AddAcademyModal; 
+export default AddAcademyModal;

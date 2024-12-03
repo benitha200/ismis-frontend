@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useTheme } from "../context/ThemeContext";
 import { X } from "lucide-react";
+import { locations } from "../data/locations";
 
 function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
   const { isDarkMode } = useTheme();
@@ -53,6 +54,19 @@ function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
     }));
   };
 
+  const handleLocationChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      // Reset dependent fields
+      ...(name === "province" && { district: "", sector: "", cell: "", village: "" }),
+      ...(name === "district" && { sector: "", cell: "", village: "" }),
+      ...(name === "sector" && { cell: "", village: "" }),
+      ...(name === "cell" && { village: "" }),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const totalParticipants = formData.numberFemaleParticipants + formData.numberMaleParticipants;
@@ -60,6 +74,22 @@ function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
     onAdd({ ...formData, totalParticipants });
 
     onClose();
+  };
+
+  const getDistricts = () => {
+    return locations.districts[formData.province] || [];
+  };
+
+  const getSectors = () => {
+    return locations.sectors[formData.district] || [];
+  };
+
+  const getCells = () => {
+    return locations.cells[formData.sector] || [];
+  };
+
+  const getVillages = () => {
+    return locations.villages[formData.cell] || [];
   };
 
   return (
@@ -113,29 +143,94 @@ function AddMassSportModal({ isOpen, onClose, onAdd, sport }) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Province</label>
-                      <Input type="text" name="province" value={formData.province} onChange={handleChange} required />
+                      <select
+                        name="province"
+                        value={formData.province}
+                        onChange={handleLocationChange}
+                        className="w-full border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="">Select Province</option>
+                        {locations.provinces.map((province) => (
+                          <option key={province} value={province}>
+                            {province}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">District</label>
-                      <Input type="text" name="district" value={formData.district} onChange={handleChange} required />
+                      <select
+                        name="district"
+                        value={formData.district}
+                        onChange={handleLocationChange}
+                        className="w-full border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="">Select District</option>
+                        {getDistricts().map((district) => (
+                          <option key={district} value={district}>
+                            {district}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Sector</label>
-                      <Input type="text" name="sector" value={formData.sector} onChange={handleChange} required />
+                      <select
+                        name="sector"
+                        value={formData.sector}
+                        onChange={handleLocationChange}
+                        className="w-full border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="">Select Sector</option>
+                        {getSectors().map((sector) => (
+                          <option key={sector} value={sector}>
+                            {sector}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Cell</label>
-                      <Input type="text" name="cell" value={formData.cell} onChange={handleChange} required />
+                      <select
+                        name="cell"
+                        value={formData.cell}
+                        onChange={handleLocationChange}
+                        className="w-full border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="">Select Cell</option>
+                        {getCells().map((cell) => (
+                          <option key={cell} value={cell}>
+                            {cell}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Village</label>
-                      <Input type="text" name="village" value={formData.village} onChange={handleChange} required />
+                      <select
+                        name="village"
+                        value={formData.village}
+                        onChange={handleLocationChange}
+                        className="w-full border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="">Select Village</option>
+                        {getVillages().map((village) => (
+                          <option key={village} value={village}>
+                            {village}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 

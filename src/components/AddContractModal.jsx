@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { X, Calendar, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import axiosInstance from '../utils/axiosInstance';
 
 function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
   const { isDarkMode } = useTheme();
@@ -20,10 +21,21 @@ function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
     startDate: '',
     duration: {
       value: '',
-      unit: 'Days' // Days, Weeks, Months, Quarters, Year
+      unit: 'Days'
     },
     endDate: ''
   });
+
+  const [employees, setEmployees] = useState([]);
+  const [administratorSearch, setAdministratorSearch] = useState('');
+  const [showAdministratorDropdown, setShowAdministratorDropdown] = useState(false);
+
+  // Define currencies array
+  const currencies = [
+    { code: 'FRW', symbol: 'FRW' },
+    { code: 'USD', symbol: '$' },
+    { code: 'EUR', symbol: '€' }
+  ];
 
   useEffect(() => {
     if (initialData) {
@@ -39,69 +51,53 @@ function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
         startDate: initialData.start_date || '',
         duration: {
           value: initialData.duration_of_contract || '',
-          unit: 'Days' // Assuming the unit is Days, adjust if needed
+          unit: 'Days'
         },
         endDate: initialData.contract_end_date || ''
       });
     }
   }, [initialData, isOpen]);
 
-  // Currency options
-  const currencies = [
-    { code: 'FRW', symbol: 'FRW' },
-    { code: 'USD', symbol: '$' },
-    { code: 'EUR', symbol: '€' }
-  ];
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await axiosInstance.get('/employees');
+        setEmployees(response.data.employees);
+      } catch (error) {
+        toast.error('Failed to fetch employees');
+      }
+    };
 
-  // Mock employee data (in real app, fetch from API)
-  const [employees] = useState([
-    { id: 1, name: 'GATSIMBANYI Aimable', department: 'PS', position: 'Contract Manager' },
-    { id: 2, name: 'KAYITAKIRWA Eric', department: 'Finance', position: 'Senior Manager' },
-    { id: 3, name: 'UWASE Marie', department: 'Legal', position: 'Contract Administrator' },
-    { id: 4, name: 'MUGISHA Jean', department: 'PS', position: 'Project Manager' },
-    { id: 5, name: 'KAMANZI Peter', department: 'Finance', position: 'Contract Supervisor' }
-  ]);
+    fetchEmployees();
+  }, []);
 
-  // States for administrator search
-  const [administratorSearch, setAdministratorSearch] = useState('');
-  const [showAdministratorDropdown, setShowAdministratorDropdown] = useState(false);
-
-  // Filter administrators based on search
   const filteredAdministrators = employees.filter(emp =>
-    emp.name.toLowerCase().includes(administratorSearch.toLowerCase()) ||
-    emp.department.toLowerCase().includes(administratorSearch.toLowerCase()) ||
-    emp.position.toLowerCase().includes(administratorSearch.toLowerCase())
+    `${emp.firstname} ${emp.lastname}`.toLowerCase().includes(administratorSearch.toLowerCase()) ||
+    emp.department_supervisor.toLowerCase().includes(administratorSearch.toLowerCase())
   );
-
-  const durationUnits = ['Days', 'Weeks', 'Months', 'Quarters', 'Year'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      // Basic validation
       if (!formData.contractNo || !formData.title || !formData.supplier) {
         throw new Error('Please fill in all required fields');
       }
 
-      // Phone number validation (Rwanda format)
       const phoneRegex = /^(\+?25)?(07[238]\d{7})$/;
       if (!phoneRegex.test(formData.phone)) {
         throw new Error('Please enter a valid Rwandan phone number');
       }
 
-      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
         throw new Error('Please enter a valid email address');
       }
 
-      // Amount validation
       if (isNaN(formData.amount) || formData.amount <= 0) {
         throw new Error('Please enter a valid amount');
       }
 
-      // Transform formData to match the required structure
       const transformedData = {
         contract_no: formData.contractNo,
         contract_title: formData.title,
@@ -126,17 +122,15 @@ function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
     }
   };
 
-  // Handle administrator selection
   const handleAdministratorSelect = (employee) => {
     setFormData(prev => ({
       ...prev,
-      administrator: employee.name
+      administrator: `${employee.firstname} ${employee.lastname}`
     }));
     setShowAdministratorDropdown(false);
     setAdministratorSearch('');
   };
 
-  // Calculate end date based on start date and duration
   const calculateEndDate = (startDate, duration) => {
     if (!startDate || !duration.value || !duration.unit) return '';
 
@@ -166,7 +160,6 @@ function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
     return end.toISOString().split('T')[0];
   };
 
-  // Update end date whenever start date or duration changes
   const handleDateDurationChange = (field, value) => {
     const updatedFormData = { ...formData, [field]: value };
     
@@ -368,9 +361,9 @@ function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
                                 className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                                 onClick={() => handleAdministratorSelect(employee)}
                               >
-                                <div className="font-medium">{employee.name}</div>
+                                <div className="font-medium">{`${employee.firstname} ${employee.lastname}`}</div>
                                 <div className="text-sm text-gray-500">
-                                  {employee.department} • {employee.position}
+                                  {employee.department_supervisor}
                                 </div>
                               </button>
                             ))
@@ -422,7 +415,7 @@ function AddContractModal({ isOpen, onClose, onAdd, initialData }) {
                           className="w-full border rounded-lg p-2"
                           required
                         >
-                          {durationUnits.map(unit => (
+                          {['Days', 'Weeks', 'Months', 'Quarters', 'Year'].map(unit => (
                             <option key={unit} value={unit}>{unit}</option>
                           ))}
                         </select>

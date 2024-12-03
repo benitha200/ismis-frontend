@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+/* src/components/forms/AddSportsProfessionalForm.jsx */
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { toast } from 'react-hot-toast';
-import axios from '../../utils/axiosInstance'; // Ensure this import points to the correct file
+import axios from '../../utils/axiosInstance';
 
-const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
+const AddSportsProfessionalForm = ({ onCancel, onSubmit, initialData = {}, isSubmitting }) => {
   const [idType, setIdType] = useState('nid');
   const [idNumber, setIdNumber] = useState('');
   const [passportExpiry, setPassportExpiry] = useState('');
@@ -15,30 +16,43 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
     function: 'lionson',
     email: '',
     phone: '',
-    status: 'ACTIVE',  // Default status updated to ACTIVE
+    status: 'ACTIVE',
     maritalStatus: '',
     region: '',
     discipline: '',
     license: '',
     otherNationality: '',
     placeOfResidence: '',
-    fitnessStatus: 'FIT', // Default fitness status is FIT
-    levelOfEducation: 'ELEMENTARY', // Default education level set to ELEMENTARY
+    fitnessStatus: 'FIT',
+    levelOfEducation: 'ELEMENTARY',
     periodOfExperience: '',
-    resume: ''
+    resume: '',
+    ...initialData // Spread initial data to override defaults if provided
   });
+
+  useEffect(() => {
+    if (initialData.idPassportNo) {
+      setIdNumber(initialData.idPassportNo);
+      setNidaData({
+        names: `${initialData.firstName} ${initialData.lastName}`,
+        dateOfBirth: initialData.dateOfBirth,
+        gender: initialData.gender,
+        nationality: initialData.nationality,
+        placeOfBirth: initialData.placeOfBirth,
+        photo: initialData.passportPicture
+      });
+    }
+  }, [initialData]);
 
   const handleNIDLookup = async () => {
     setIdError('');
 
-    // Validate ID format
     if (idType === 'nid') {
       if (!/^\d{16}$/.test(idNumber)) {
         setIdError('National ID must be exactly 16 digits');
         return;
       }
     } else {
-      // Passport validation
       if (!/^[A-Z0-9]{6,9}$/.test(idNumber)) {
         setIdError('Invalid passport format');
         return;
@@ -58,10 +72,7 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
 
     setIsLoadingNIDA(true);
     try {
-      // Simulate NIDA API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Sample response
       const response = {
         documentNumber: idNumber,
         names: "NSHUTI Jean Baptiste",
@@ -90,7 +101,6 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
       return;
     }
 
-    // Combine NIDA data with form data into the desired format
     const submitData = {
       idPassportNo: idNumber,
       passportPicture: nidaData.photo,
@@ -114,18 +124,28 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
       resume: formData.resume
     };
 
-    // Make POST request with axiosInstance
     try {
-      console.log(submitData);
-      const response = await axios.post('/official-referees', submitData); // Adjust the endpoint as per your API
-      if (response.status === 200) {
-        toast.success('Professional added successfully');
-        // Call onSubmit if provided
-        if (typeof onSubmit === 'function') {
-          onSubmit(response.data); // Pass back the response data if needed
+      let response;
+      if (initialData.id) {
+        // Update existing professional
+        response = await axios.put(`/official-referees/${initialData.id}`, submitData);
+        if (response.status === 200) {
+          toast.success('Professional updated successfully');
+        } else {
+          toast.error('Failed to update professional');
         }
       } else {
-        toast.error('Failed to add professional');
+        // Add new professional
+        response = await axios.post('/official-referees', submitData);
+        if (response.status === 200) {
+          toast.success('Professional added successfully');
+        } else {
+          toast.error('Failed to add professional');
+        }
+      }
+
+      if (typeof onSubmit === 'function') {
+        onSubmit(response.data);
       }
     } catch (error) {
       toast.error('An error occurred while submitting the form');
@@ -136,7 +156,6 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
   return (
     <div className="max-h-[80vh] overflow-y-auto p-4 space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ID Type Selection */}
         <div className="p-4 bg-gray-50 rounded-lg space-y-4">
           <div className="flex gap-4">
             <label className="flex items-center">
@@ -222,7 +241,6 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
           )}
         </div>
 
-        {/* Personal Information - Read-only from NIDA */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Full Name</label>
@@ -258,7 +276,6 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
           </div>
         </div>
 
-        {/* Additional Fields */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Marital Status</label>
@@ -290,10 +307,11 @@ const AddSportsProfessionalForm = ({ onCancel, isSubmitting }) => {
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="flex gap-4 justify-end">
           <Button type="button" onClick={onCancel}>Cancel</Button>
-          <Button type="submit" disabled={isSubmitting}>Submit</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {initialData.id ? 'Update' : 'Submit'}
+          </Button>
         </div>
       </form>
     </div>

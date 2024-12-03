@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useToast } from '../../contexts/ToastContext';
+import { locations } from '../../data/locations';
 
 const validationRules = {
   name: {
@@ -40,9 +41,10 @@ const validationRules = {
 
 function InstitutionForm({ institution, onSubmit, onCancel }) {
   const [loading, setLoading] = useState(false);
+  const showToast = useToast();
 
   // Set default values for the form
-  const initialValues = institution || {
+  const initialValues = {
     name: '',
     domain: '',
     category: 'EXCELLENCE SCHOOL',
@@ -56,7 +58,8 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
     legalRepresentativeName: '',
     legalRepresentativeGender: 'Male',
     legalRepresentativeEmail: '',
-    legalRepresentativePhone: ''
+    legalRepresentativePhone: '',
+    ...institution // Spread institution to override defaults if provided
   };
 
   const {
@@ -69,9 +72,7 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
     resetForm
   } = useFormValidation(initialValues, validationRules);
 
-  const locations = ['SOUTHERN', 'EASTERN', 'WESTERN', 'NORTHERN', 'CITY OF KIGALI'];
   const categories = ['EXCELLENCE SCHOOL', 'REGULAR SCHOOL', 'SPECIAL SCHOOL'];
-  const statuses = ['Active', 'Suspended', 'On going'];
   const genders = ['Male', 'Female'];
 
   const handleSubmit = async (e) => {
@@ -94,6 +95,23 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
     const { name, value } = e.target;
     const locationKey = name.split('.')[1]; // Access the correct nested location key (province, district, etc.)
     const updatedLocation = { ...values.location, [locationKey]: value }; // Update the specific location field
+
+    // Reset dependent fields
+    if (locationKey === 'province') {
+      updatedLocation.district = '';
+      updatedLocation.sector = '';
+      updatedLocation.cell = '';
+      updatedLocation.village = '';
+    } else if (locationKey === 'district') {
+      updatedLocation.sector = '';
+      updatedLocation.cell = '';
+      updatedLocation.village = '';
+    } else if (locationKey === 'sector') {
+      updatedLocation.cell = '';
+      updatedLocation.village = '';
+    } else if (locationKey === 'cell') {
+      updatedLocation.village = '';
+    }
 
     // Update the form state for location
     handleChange({ target: { name: 'location', value: updatedLocation } });
@@ -174,10 +192,9 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
                 <label className="block text-sm font-medium text-[#1B2559] mb-2">
                   Province
                 </label>
-                {/* <input
-                  type="text"
+                <select
                   name="location.province"
-                  value={values.location.province}
+                  value={values.location?.province || ''}
                   onChange={handleLocationChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-lg border ${
@@ -185,20 +202,25 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-[#E2E7F0] focus:ring-[#4318FF]'
                   } focus:outline-none focus:ring-2`}
-                  placeholder="Enter province"
-                />
+                >
+                  <option value="">Select Province</option>
+                  {locations.provinces.map((province) => (
+                    <option key={province} value={province}>
+                      {province}
+                    </option>
+                  ))}
+                </select>
                 {errors.location?.province && touched.location?.province && (
                   <p className="mt-1 text-sm text-red-500">{errors.location.province}</p>
-                )} */}
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#1B2559] mb-2">
                   District
                 </label>
-                {/* <input
-                  type="text"
+                <select
                   name="location.district"
-                  value={values.location.district}
+                  value={values.location?.district || ''}
                   onChange={handleLocationChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-lg border ${
@@ -206,20 +228,26 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-[#E2E7F0] focus:ring-[#4318FF]'
                   } focus:outline-none focus:ring-2`}
-                  placeholder="Enter district"
-                />
+                  disabled={!values.location.province}
+                >
+                  <option value="">Select District</option>
+                  {locations.districts[values.location.province]?.map((district) => (
+                    <option key={district} value={district}>
+                      {district}
+                    </option>
+                  ))}
+                </select>
                 {errors.location?.district && touched.location?.district && (
                   <p className="mt-1 text-sm text-red-500">{errors.location.district}</p>
-                )} */}
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#1B2559] mb-2">
                   Sector
                 </label>
-                {/* <input
-                  type="text"
+                <select
                   name="location.sector"
-                  value={values.location.sector}
+                  value={values.location?.sector || ''}
                   onChange={handleLocationChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-lg border ${
@@ -227,20 +255,26 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-[#E2E7F0] focus:ring-[#4318FF]'
                   } focus:outline-none focus:ring-2`}
-                  placeholder="Enter sector"
-                />
+                  disabled={!values.location.district}
+                >
+                  <option value="">Select Sector</option>
+                  {locations.sectors[values.location.district]?.map((sector) => (
+                    <option key={sector} value={sector}>
+                      {sector}
+                    </option>
+                  ))}
+                </select>
                 {errors.location?.sector && touched.location?.sector && (
                   <p className="mt-1 text-sm text-red-500">{errors.location.sector}</p>
-                )} */}
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#1B2559] mb-2">
                   Cell
                 </label>
-                {/* <input
-                  type="text"
+                <select
                   name="location.cell"
-                  value={values.location.cell}
+                  value={values.location?.cell || ''}
                   onChange={handleLocationChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-lg border ${
@@ -248,20 +282,26 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-[#E2E7F0] focus:ring-[#4318FF]'
                   } focus:outline-none focus:ring-2`}
-                  placeholder="Enter cell"
-                />
+                  disabled={!values.location.sector}
+                >
+                  <option value="">Select Cell</option>
+                  {locations.cells[values.location.sector]?.map((cell) => (
+                    <option key={cell} value={cell}>
+                      {cell}
+                    </option>
+                  ))}
+                </select>
                 {errors.location?.cell && touched.location?.cell && (
                   <p className="mt-1 text-sm text-red-500">{errors.location.cell}</p>
-                )} */}
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#1B2559] mb-2">
                   Village
                 </label>
-                {/* <input
-                  type="text"
+                <select
                   name="location.village"
-                  value={values.location.village}
+                  value={values.location?.village || ''}
                   onChange={handleLocationChange}
                   onBlur={handleBlur}
                   className={`w-full px-4 py-3 rounded-lg border ${
@@ -269,11 +309,18 @@ function InstitutionForm({ institution, onSubmit, onCancel }) {
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-[#E2E7F0] focus:ring-[#4318FF]'
                   } focus:outline-none focus:ring-2`}
-                  placeholder="Enter village"
-                />
+                  disabled={!values.location.cell}
+                >
+                  <option value="">Select Village</option>
+                  {locations.villages[values.location.cell]?.map((village) => (
+                    <option key={village} value={village}>
+                      {village}
+                    </option>
+                  ))}
+                </select>
                 {errors.location?.village && touched.location?.village && (
                   <p className="mt-1 text-sm text-red-500">{errors.location.village}</p>
-                )} */}
+                )}
               </div>
             </div>
           </div>

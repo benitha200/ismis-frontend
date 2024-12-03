@@ -13,19 +13,15 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
     name: '',
     domain: '',
     category: '',
-    location: {
-      province: '',
-      district: '',
-      sector: '',
-      cell: '',
-      village: ''
-    },
-    legalRepresentative: {
-      name: '',
-      gender: '',
-      email: '',
-      phone: ''
-    }
+    location_province: '',
+    location_district: '',
+    location_sector: '',
+    location_cell: '',
+    location_village: '',
+    legalRepresentativeName: '',
+    legalRepresentativeGender: '',
+    legalRepresentativeEmail: '',
+    legalRepresentativePhone: ''
   });
 
   // Location states
@@ -46,36 +42,32 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
         name: academyData.name || '',
         domain: academyData.domain || '',
         category: academyData.category || '',
-        location: {
-          province: academyData.location?.province || '',
-          district: academyData.location?.district || '',
-          sector: academyData.location?.sector || '',
-          cell: academyData.location?.cell || '',
-          village: academyData.location?.village || ''
-        },
-        legalRepresentative: {
-          name: academyData.legalRepresentative?.name || '',
-          gender: academyData.legalRepresentative?.gender || '',
-          email: academyData.legalRepresentative?.email || '',
-          phone: academyData.legalRepresentative?.phone || ''
-        }
+        location_province: academyData.location_province || '',
+        location_district: academyData.location_district || '',
+        location_sector: academyData.location_sector || '',
+        location_cell: academyData.location_cell || '',
+        location_village: academyData.location_village || '',
+        legalRepresentativeName: academyData.legalRepresentativeName || '',
+        legalRepresentativeGender: academyData.legalRepresentativeGender || '',
+        legalRepresentativeEmail: academyData.legalRepresentativeEmail || '',
+        legalRepresentativePhone: academyData.legalRepresentativePhone || ''
       });
 
       // Only trigger location cascading if province exists
-      if (academyData.location?.province) {
-        handleProvinceChange({ target: { value: academyData.location.province } });
+      if (academyData.location_province) {
+        handleProvinceChange({ target: { value: academyData.location_province } });
         
         // Only trigger district if both province and district exist
-        if (academyData.location.district) {
-          handleDistrictChange({ target: { value: academyData.location.district } });
+        if (academyData.location_district) {
+          handleDistrictChange({ target: { value: academyData.location_district } });
           
           // Only trigger sector if province, district and sector exist
-          if (academyData.location.sector) {
-            handleSectorChange({ target: { value: academyData.location.sector } });
+          if (academyData.location_sector) {
+            handleSectorChange({ target: { value: academyData.location_sector } });
             
             // Only trigger cell if all previous levels exist
-            if (academyData.location.cell) {
-              handleCellChange({ target: { value: academyData.location.cell } });
+            if (academyData.location_cell) {
+              handleCellChange({ target: { value: academyData.location_cell } });
             }
           }
         }
@@ -88,14 +80,11 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
     const province = e.target.value;
     setFormData(prev => ({
       ...prev,
-      location: {
-        ...prev.location,
-        province,
-        district: '',
-        sector: '',
-        cell: '',
-        village: ''
-      }
+      location_province: province,
+      location_district: '',
+      location_sector: '',
+      location_cell: '',
+      location_village: ''
     }));
 
     if (province && rwandaLocations[province]) {
@@ -112,17 +101,14 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
     const district = e.target.value;
     setFormData(prev => ({
       ...prev,
-      location: {
-        ...prev.location,
-        district,
-        sector: '',
-        cell: '',
-        village: ''
-      }
+      location_district: district,
+      location_sector: '',
+      location_cell: '',
+      location_village: ''
     }));
 
-    if (district && rwandaLocations[formData.location.province]?.districts[district]) {
-      setAvailableSectors(Object.keys(rwandaLocations[formData.location.province].districts[district].sectors));
+    if (district && rwandaLocations[formData.location_province]?.districts[district]) {
+      setAvailableSectors(Object.keys(rwandaLocations[formData.location_province].districts[district].sectors));
     } else {
       setAvailableSectors([]);
     }
@@ -134,16 +120,13 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
     const sector = e.target.value;
     setFormData(prev => ({
       ...prev,
-      location: {
-        ...prev.location,
-        sector,
-        cell: '',
-        village: ''
-      }
+      location_sector: sector,
+      location_cell: '',
+      location_village: ''
     }));
 
-    if (sector && rwandaLocations[formData.location.province]?.districts[formData.location.district]?.sectors[sector]) {
-      setAvailableCells(Object.keys(rwandaLocations[formData.location.province].districts[formData.location.district].sectors[sector].cells));
+    if (sector && rwandaLocations[formData.location_province]?.districts[formData.location_district]?.sectors[sector]) {
+      setAvailableCells(Object.keys(rwandaLocations[formData.location_province].districts[formData.location_district].sectors[sector].cells));
     } else {
       setAvailableCells([]);
     }
@@ -154,15 +137,12 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
     const cell = e.target.value;
     setFormData(prev => ({
       ...prev,
-      location: {
-        ...prev.location,
-        cell,
-        village: ''
-      }
+      location_cell: cell,
+      location_village: ''
     }));
 
-    if (cell && rwandaLocations[formData.location.province]?.districts[formData.location.district]?.sectors[formData.location.sector]?.cells[cell]) {
-      setAvailableVillages(rwandaLocations[formData.location.province].districts[formData.location.district].sectors[formData.location.sector].cells[cell]);
+    if (cell && rwandaLocations[formData.location_province]?.districts[formData.location_district]?.sectors[formData.location_sector]?.cells[cell]) {
+      setAvailableVillages(rwandaLocations[formData.location_province].districts[formData.location_district].sectors[formData.location_sector].cells[cell]);
     } else {
       setAvailableVillages([]);
     }
@@ -178,26 +158,26 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
       }
 
       // Location validation
-      if (!formData.location.province || !formData.location.district || 
-          !formData.location.sector || !formData.location.cell || !formData.location.village) {
+      if (!formData.location_province || !formData.location_district || 
+          !formData.location_sector || !formData.location_cell || !formData.location_village) {
         throw new Error('Please complete all location fields');
       }
 
       // Legal representative validation
-      if (!formData.legalRepresentative.name || !formData.legalRepresentative.gender || 
-          !formData.legalRepresentative.email || !formData.legalRepresentative.phone) {
+      if (!formData.legalRepresentativeName || !formData.legalRepresentativeGender || 
+          !formData.legalRepresentativeEmail || !formData.legalRepresentativePhone) {
         throw new Error('Please fill in all legal representative details');
       }
 
       // Phone validation (Rwanda format)
       const phoneRegex = /^(\+?25)?(07[238]\d{7})$/;
-      if (!phoneRegex.test(formData.legalRepresentative.phone)) {
+      if (!phoneRegex.test(formData.legalRepresentativePhone)) {
         throw new Error('Please enter a valid Rwandan phone number');
       }
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.legalRepresentative.email)) {
+      if (!emailRegex.test(formData.legalRepresentativeEmail)) {
         throw new Error('Please enter a valid email address');
       }
 
@@ -303,7 +283,7 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                     <div>
                       <label className="block mb-1 text-sm font-medium">Province</label>
                       <select
-                        value={formData.location.province}
+                        value={formData.location_province}
                         onChange={handleProvinceChange}
                         required
                         className="w-full border rounded-lg p-2"
@@ -317,10 +297,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                     <div>
                       <label className="block mb-1 text-sm font-medium">District</label>
                       <select
-                        value={formData.location.district}
+                        value={formData.location_district}
                         onChange={handleDistrictChange}
                         required
-                        disabled={!formData.location.province}
+                        disabled={!formData.location_province}
                         className="w-full border rounded-lg p-2"
                       >
                         <option value="">Select District</option>
@@ -335,10 +315,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                     <div>
                       <label className="block mb-1 text-sm font-medium">Sector</label>
                       <select
-                        value={formData.location.sector}
+                        value={formData.location_sector}
                         onChange={handleSectorChange}
                         required
-                        disabled={!formData.location.district}
+                        disabled={!formData.location_district}
                         className="w-full border rounded-lg p-2"
                       >
                         <option value="">Select Sector</option>
@@ -350,10 +330,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                     <div>
                       <label className="block mb-1 text-sm font-medium">Cell</label>
                       <select
-                        value={formData.location.cell}
+                        value={formData.location_cell}
                         onChange={handleCellChange}
                         required
-                        disabled={!formData.location.sector}
+                        disabled={!formData.location_sector}
                         className="w-full border rounded-lg p-2"
                       >
                         <option value="">Select Cell</option>
@@ -365,13 +345,13 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                     <div>
                       <label className="block mb-1 text-sm font-medium">Village</label>
                       <select
-                        value={formData.location.village}
+                        value={formData.location_village}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          location: { ...prev.location, village: e.target.value }
+                          location_village: e.target.value
                         }))}
                         required
-                        disabled={!formData.location.cell}
+                        disabled={!formData.location_cell}
                         className="w-full border rounded-lg p-2"
                       >
                         <option value="">Select Village</option>
@@ -393,10 +373,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                       </label>
                       <Input
                         type="text"
-                        value={formData.legalRepresentative.name}
+                        value={formData.legalRepresentativeName}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          legalRepresentative: { ...prev.legalRepresentative, name: e.target.value }
+                          legalRepresentativeName: e.target.value
                         }))}
                         required
                         placeholder="Enter representative name"
@@ -407,10 +387,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                         Gender <span className="text-red-500">*</span>
                       </label>
                       <select
-                        value={formData.legalRepresentative.gender}
+                        value={formData.legalRepresentativeGender}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          legalRepresentative: { ...prev.legalRepresentative, gender: e.target.value }
+                          legalRepresentativeGender: e.target.value
                         }))}
                         required
                         className="w-full border rounded-lg p-2"
@@ -430,10 +410,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                       </label>
                       <Input
                         type="email"
-                        value={formData.legalRepresentative.email}
+                        value={formData.legalRepresentativeEmail}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          legalRepresentative: { ...prev.legalRepresentative, email: e.target.value }
+                          legalRepresentativeEmail: e.target.value
                         }))}
                         required
                         placeholder="Enter email address"
@@ -445,10 +425,10 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
                       </label>
                       <Input
                         type="tel"
-                        value={formData.legalRepresentative.phone}
+                        value={formData.legalRepresentativePhone}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
-                          legalRepresentative: { ...prev.legalRepresentative, phone: e.target.value }
+                          legalRepresentativePhone: e.target.value
                         }))}
                         required
                         placeholder="07X XXX XXXX"
@@ -482,4 +462,4 @@ function EditAcademyModal({ isOpen, onClose, onEdit, academyData }) {
   );
 }
 
-export default EditAcademyModal; 
+export default EditAcademyModal;

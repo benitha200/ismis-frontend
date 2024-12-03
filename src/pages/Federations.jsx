@@ -1,3 +1,4 @@
+/* src/pages/Federations.jsx */
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -35,7 +36,7 @@ import ManageClubs from '../components/federation/ManageClubs';
 import AddClubForm from '../components/federation/AddClubForm';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import PlayerStaffTransfer from '../components/federation/PlayerStaffTransfer'; // Import the new component
+import PlayerStaffTransfer from '../components/federation/PlayerStaffTransfer';
 
 const Federations = () => {
   const { isDarkMode } = useDarkMode();
@@ -59,7 +60,7 @@ const Federations = () => {
   const [playerToEdit, setPlayerToEdit] = useState(null);
   const [federations, setFederations] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5); // Set to 5 for pagination
   const [filteredFederations, setFilteredFederations] = useState([]);
   const [deletePlayerStaffDialogOpen, setDeletePlayerStaffDialogOpen] = useState(false);
   const [playerStaffToDelete, setPlayerStaffToDelete] = useState(null);
@@ -78,6 +79,7 @@ const Federations = () => {
     location: ['Kigali', 'Eastern', 'Western', 'Northern', 'Southern'],
   };
 
+ 
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -475,6 +477,7 @@ const Federations = () => {
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 >
+                  <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -505,35 +508,40 @@ const Federations = () => {
                     <TableHead className="w-[80px] text-xs">Operation</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {currentItems.map((federation) => (
-                    <TableRow key={federation.id}>
-                      <TableCell className="text-xs">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300"
-                          checked={selectedRows.includes(federation.id)}
-                          onChange={() => handleSelectRow(federation.id)}
+              <TableBody>
+                {currentItems.map((federation) => (
+                  <TableRow key={federation.id}>
+                    <TableCell className="text-xs">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300"
+                        checked={selectedRows.includes(federation.id)}
+                        onChange={() => {
+                          if (selectedRows.includes(federation.id)) {
+                            setSelectedRows(selectedRows.filter((id) => id !== federation.id));
+                          } else {
+                            setSelectedRows([...selectedRows, federation.id]);
+                          }
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-xs font-medium">{federation.name}</TableCell>
+                    <TableCell className="text-xs">{federation.acronym}</TableCell>
+                    <TableCell className="text-xs">{federation.yearFounded}</TableCell>
+                    <TableCell className="text-xs">{federation.legalRepresentativeNam}</TableCell>
+                    <TableCell className="text-xs">{federation.address}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-0.5">
+                        <ActionMenu
+                          onEdit={() => handleEdit(federation)}
+                          onDelete={() => handleDeleteClick(federation)}
                         />
-                      </TableCell>
-                      <TableCell className="text-xs font-medium">{federation.name}</TableCell>
-                      <TableCell className="text-xs">{federation.acronym}</TableCell>
-                      <TableCell className="text-xs">{federation.yearFounded}</TableCell>
-                      <TableCell className="text-xs">{federation.legalRepresentative}</TableCell>
-                      <TableCell className="text-xs">{federation.address}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-0.5">
-                          <ActionMenu
-                            onEdit={() => handleEdit(federation)}
-                            onDelete={() => handleDeleteClick(federation)}
-                            onDownload={() => handleDownload(federation)}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             </div>
 
             <div className="flex items-center justify-between px-4 py-3 border-t">
@@ -631,6 +639,7 @@ const Federations = () => {
                       value={itemsPerPage}
                       onChange={(e) => setItemsPerPage(Number(e.target.value))}
                     >
+                      <option value={5}>5</option>
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
@@ -724,7 +733,7 @@ const Federations = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPlayersStaff.map((person) => (
+                  {filteredPlayersStaff.slice(indexOfFirstItem, indexOfLastItem).map((person) => (
                     <TableRow key={person.id}>
                       <TableCell>
                         <input type="checkbox" className="rounded border-gray-300" />
@@ -763,12 +772,46 @@ const Federations = () => {
                   ))}
                 </TableBody>
               </Table>
+              <div className="flex items-center justify-between px-4 py-3 border-t">
+                <div className="flex items-center text-sm text-gray-500">
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPlayersStaff.length)} of{' '}
+                  {filteredPlayersStaff.length} entries
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  {[...Array(totalPages)].map((_, index) => (
+                    <Button
+                      key={index + 1}
+                      variant={currentPage === index + 1 ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(index + 1)}
+                    >
+                      {index + 1}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         );
 
       case 'Player/Staff Transfer':
-        return <PlayerStaffTransfer />; // Render the PlayerStaffTransfer component
+        return <PlayerStaffTransfer />;
 
       case 'Players Map':
         return (
@@ -983,3 +1026,4 @@ const Federations = () => {
 };
 
 export default Federations;
+

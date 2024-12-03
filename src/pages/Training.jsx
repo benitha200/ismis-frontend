@@ -10,7 +10,7 @@ import Message from '../components/ui/Message';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import axiosInstance from '../utils/axiosInstance'; // Import the axios instance
+import axiosInstance from '../utils/axiosInstance';
 
 // Define the Table components
 const Table = ({ children }) => <table className="min-w-full table-auto">{children}</table>;
@@ -30,7 +30,7 @@ const Training = () => {
   const [trainings, setTrainings] = useState([]);
   const [filteredTrainings, setFilteredTrainings] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(5); // Set items per page to 5
   const [trainingToDelete, setTrainingToDelete] = useState(null);
   const [trainingToEdit, setTrainingToEdit] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');

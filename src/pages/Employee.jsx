@@ -23,12 +23,15 @@ function Employee() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewEmployee, setViewEmployee] = useState(null);
   const [employeesData, setEmployeesData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 5;
 
   useEffect(() => {
     const fetchEmployeesData = async () => {
       try {
         setLoading(true);
         const employees = await fetchEmployees();
+        console.log('Fetched employees:', employees); // Debugging line
         setEmployeesData(employees);
       } catch (error) {
         toast.error('Failed to load employees');
@@ -42,10 +45,10 @@ function Employee() {
 
   const counts = {
     total: employeesData.length,
-    active: employeesData.filter(emp => emp.employeeStatus === 'Active').length,
-    dormant: employeesData.filter(emp => emp.employeeStatus === 'Dormant').length,
-    onSalary: employeesData.filter(emp => emp.employeeType === 'ON SALARY').length,
-    contract: employeesData.filter(emp => emp.employeeType === 'CONTRACT').length
+    active: employeesData.filter(emp => emp.employee_status.toLowerCase() === 'active').length,
+    dormant: employeesData.filter(emp => emp.employee_status.toLowerCase() === 'dormant').length,
+    onSalary: employeesData.filter(emp => emp.employee_type.toLowerCase() === 'on salary').length,
+    contract: employeesData.filter(emp => emp.employee_type.toLowerCase() === 'contract').length
   };
 
   const tabs = [
@@ -62,6 +65,13 @@ function Employee() {
       value.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
   const handleAddEmployee = async (newEmployee) => {
     try {
@@ -81,7 +91,7 @@ function Employee() {
 
   const handleEditSubmit = async (updatedEmployee) => {
     try {
-      const updated = await updateEmployee(updatedEmployee);
+      const updated = await updateEmployee(updatedEmployee.id, updatedEmployee);
       setEmployeesData(prev => 
         prev.map(emp => 
           emp.id === updated.id ? updated : emp
@@ -144,7 +154,7 @@ function Employee() {
             </div>
             <div>
               <label className="text-sm text-gray-500">Full Name</label>
-              <p className="font-medium">{employee.firstname}{employee.lastname}</p>
+              <p className="font-medium">{employee.firstname} {employee.lastname}</p>
             </div>
           </div>
 
@@ -157,7 +167,7 @@ function Employee() {
               <label className="text-sm text-gray-500">Status</label>
               <p>
                 <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                  employee.employee_status === 'Active' 
+                  employee.employee_status.toLowerCase() === 'active' 
                     ? 'bg-green-100 text-green-800'
                     : 'bg-red-100 text-red-800'
                 }`}>
@@ -275,11 +285,11 @@ function Employee() {
               </div>
               <div className="bg-white p-4 rounded-lg shadow">
                 <h3 className="text-sm text-gray-500">Active</h3>
-                <p className="text-2xl font-semibold text-green-600">{counts.employee_status}</p>
+                <p className="text-2xl font-semibold text-green-600">{counts.active}</p>
               </div>
               <div className="bg-white p-4 rounded-lg shadow">
                 <h3 className="text-sm text-gray-500">Dormant</h3>
-                <p className="text-2xl font-semibold text-red-600">{counts.department_supervisor}</p>
+                <p className="text-2xl font-semibold text-red-600">{counts.dormant}</p>
               </div>
               <div className="bg-white p-4 rounded-lg shadow">
                 <h3 className="text-sm text-gray-500">On Salary</h3>
@@ -326,7 +336,7 @@ function Employee() {
 
             {/* Employee Table */}
             <div className="bg-white rounded-lg shadow overflow-x-auto">
-              {filteredData.length > 0 ? (
+              {paginatedData.length > 0 ? (
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
@@ -341,14 +351,14 @@ function Employee() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredData.map((employee) => (
+                    {paginatedData.map((employee) => (
                       <tr key={employee.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-blue-600">{employee.id}</td>
                         <td className="px-4 py-3 text-sm">{`${employee.firstname} ${employee.lastname}`}</td>
-                        <td className="px-4 py-3 text-sm">{employee.startDate}</td>
+                        <td className="px-4 py-3 text-sm">{employee.start_date}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                            employee.employeeStatus === 'Active' 
+                            employee.employee_status.toLowerCase() === 'active' 
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                           }`}>
@@ -407,6 +417,23 @@ function Employee() {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center mt-4">
+              <Button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <Button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
             </div>
           </div>
         );

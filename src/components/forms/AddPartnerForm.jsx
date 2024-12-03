@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import axiosInstance from '../../utils/axiosInstance'; // Import your custom axios instance
+import { locations } from '../../data/locations'; // Import locations data
 
-const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
+const AddPartnerForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const [formData, setFormData] = useState({
     name: '',
     sports_discipline: '',
@@ -20,6 +21,27 @@ const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     createdAt: '',
     updatedAt: '',
   });
+
+  const [clubs, setClubs] = useState([]);
+  const [disciplines, setDisciplines] = useState([]);
+
+  // Fetch clubs and disciplines from API
+  useEffect(() => {
+    const fetchClubsAndDisciplines = async () => {
+      try {
+        const [clubsResponse, disciplinesResponse] = await Promise.all([
+          axiosInstance.get('/clubs'),
+          axiosInstance.get('/disciplines'),
+        ]);
+        setClubs(clubsResponse.data || []);
+        setDisciplines(disciplinesResponse.data || []);
+      } catch (error) {
+        toast.error('Failed to fetch clubs or disciplines');
+      }
+    };
+
+    fetchClubsAndDisciplines();
+  }, []);
 
   // If initialData is passed (edit mode), update formData state
   useEffect(() => {
@@ -52,6 +74,19 @@ const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     }));
   };
 
+  const handleLocationChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      // Reset dependent fields
+      ...(name === "location_province" && { location_district: "", location_sector: "", location_cell: "", location_village: "" }),
+      ...(name === "location_district" && { location_sector: "", location_cell: "", location_village: "" }),
+      ...(name === "location_sector" && { location_cell: "", location_village: "" }),
+      ...(name === "location_cell" && { location_village: "" }),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
@@ -60,30 +95,26 @@ const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       updatedAt: new Date().toISOString(),
     };
 
-    // If we're editing, we don't want to include createdAt (or use initial createdAt)
     if (initialData) {
       delete payload.createdAt;
     } else {
-      // For adding a new partner, ensure createdAt is included
       payload.createdAt = new Date().toISOString();
     }
   
     try {
       let response;
       if (initialData) {
-        // Edit existing partner: Use PUT for updates
         response = await axiosInstance.put(`/partners/${initialData.id}`, payload, {
           headers: { 'Content-Type': 'application/json' },
         });
         toast.success('Data updated successfully!');
       } else {
-        // Add new partner: Use POST for creating a new entry
         response = await axiosInstance.post('/partners', payload, {
           headers: { 'Content-Type': 'application/json' },
         });
         toast.success('Data submitted successfully!');
       }
-      onSubmit(response.data); // Return the response data to parent
+      onSubmit(response.data);
     } catch (error) {
       if (error.response) {
         console.error('Error response:', error.response);
@@ -95,32 +126,60 @@ const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
     }
   };
 
+  const getDistricts = () => {
+    return locations.districts[formData.location_province] || [];
+  };
+
+  const getSectors = () => {
+    return locations.sectors[formData.location_district] || [];
+  };
+
+  const getCells = () => {
+    return locations.cells[formData.location_sector] || [];
+  };
+
+  const getVillages = () => {
+    return locations.villages[formData.location_cell] || [];
+  };
+
   return (
     <div className="max-h-[80vh] overflow-y-auto p-4">
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Club Name */}
         <div>
           <label>Club Name</label>
-          <input
-            type="text"
+          <select
             name="name"
             value={formData.name}
             onChange={handleChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select Club</option>
+            {clubs.map((club) => (
+              <option key={club.id} value={club.name}>
+                {club.name}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Sports Discipline */}
         <div>
           <label>Sports Discipline</label>
-          <input
-            type="text"
+          <select
             name="sports_discipline"
             value={formData.sports_discipline}
             onChange={handleChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select Discipline</option>
+            {disciplines.map((discipline) => (
+              <option key={discipline.id} value={discipline.name}>
+                {discipline.name}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Legal Status */}
         <div>
@@ -149,62 +208,92 @@ const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
         {/* Location Province */}
         <div>
           <label>Location Province</label>
-          <input
-            type="text"
+          <select
             name="location_province"
             value={formData.location_province}
-            onChange={handleChange}
+            onChange={handleLocationChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select Province</option>
+            {locations.provinces.map((province) => (
+              <option key={province} value={province}>
+                {province}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Location District */}
         <div>
           <label>Location District</label>
-          <input
-            type="text"
+          <select
             name="location_district"
             value={formData.location_district}
-            onChange={handleChange}
+            onChange={handleLocationChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select District</option>
+            {getDistricts().map((district) => (
+              <option key={district} value={district}>
+                {district}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Location Sector */}
         <div>
           <label>Location Sector</label>
-          <input
-            type="text"
+          <select
             name="location_sector"
             value={formData.location_sector}
-            onChange={handleChange}
+            onChange={handleLocationChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select Sector</option>
+            {getSectors().map((sector) => (
+              <option key={sector} value={sector}>
+                {sector}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Location Cell */}
         <div>
           <label>Location Cell</label>
-          <input
-            type="text"
+          <select
             name="location_cell"
             value={formData.location_cell}
-            onChange={handleChange}
+            onChange={handleLocationChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select Cell</option>
+            {getCells().map((cell) => (
+              <option key={cell} value={cell}>
+                {cell}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Location Village */}
         <div>
           <label>Location Village</label>
-          <input
-            type="text"
+          <select
             name="location_village"
             value={formData.location_village}
-            onChange={handleChange}
+            onChange={handleLocationChange}
             required
             className="w-full border rounded"
-          />
+          >
+            <option value="">Select Village</option>
+            {getVillages().map((village) => (
+              <option key={village} value={village}>
+                {village}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Legal Representative Name */}
         <div>
@@ -276,4 +365,4 @@ const AddSportForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   );
 };
 
-export default AddSportForm;
+export default AddPartnerForm;

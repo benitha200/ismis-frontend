@@ -1,11 +1,13 @@
+/* src/components/forms/AddFederationForm.jsx */
 import React, { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../utils/axiosInstance'; // Import axiosInstance
+import axiosInstance from '../../utils/axiosInstance';
 
 const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
   const [formData, setFormData] = useState(initialData || {
+    logo: null,
     name: '',
     acronym: '',
     yearFounded: '',
@@ -17,13 +19,11 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
     legalRepresentativeGender: '',
     legalRepresentativeEmail: '',
     legalRepresentativePhone: '',
-    logo: null,
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Set the initial form data when `initialData` changes (for editing mode)
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
@@ -71,41 +71,24 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
         throw new Error('Please enter valid email addresses');
       }
 
-      // Prepare the form data for submission
-      const formDataToSend = new FormData();
-      const keysToSend = [
-        'logo',
-        'name',
-        'acronym',
-        'yearFounded',
-        'address',
-        'website',
-        'loginEmail',
-        'loginPassword',
-        'legalRepresentativeName',
-        'legalRepresentativeGender',
-        'legalRepresentativeEmail',
-        'legalRepresentativePhone',
-      ];
+      // Prepare the data in the requested format
+      const dataToSend = {
+        logo: formData.logo ? formData.logo.name : '', // Send the logo filename, not the file itself
+        name: formData.name,
+        acronym: formData.acronym,
+        yearFounded: parseInt(formData.yearFounded, 10),
+        address: formData.address,
+        website: formData.website,
+        loginEmail: formData.loginEmail,
+        loginPassword: formData.loginPassword,
+        legalRepresentativeName: formData.legalRepresentativeName,
+        legalRepresentativeGender: formData.legalRepresentativeGender,
+        legalRepresentativeEmail: formData.legalRepresentativeEmail,
+        legalRepresentativePhone: formData.legalRepresentativePhone,
+      };
 
-      // Append form fields to FormData
-      keysToSend.forEach((key) => {
-        const value = formData[key];
-        if (value || value === 0 || value === '') {
-          formDataToSend.append(key, value);
-        }
-      });
-
-      // Append the logo file to FormData
-      if (formData.logo) {
-        formDataToSend.append('logo', formData.logo);
-      }
-
-      // Log FormData content for debugging
-      console.log('FormData being sent:');
-      for (let [key, value] of formDataToSend.entries()) {
-        console.log(`${key}:`, value);
-      }
+      // Log the final formatted data for debugging
+      console.log('Data being sent:', dataToSend);
 
       // Define the API URL and HTTP method based on editing mode
       const apiUrl = isEditing
@@ -115,9 +98,9 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
       const method = isEditing ? 'put' : 'post';
 
       // Make API request to the backend
-      const response = await axiosInstance[method](apiUrl, formDataToSend, {
+      const response = await axiosInstance[method](apiUrl, dataToSend, {
         headers: {
-          'Content-Type': 'multipart/form-data', // This is necessary for file uploads
+          'Content-Type': 'application/json', // Sending JSON, no need for multipart/form-data anymore
         },
       });
 
@@ -278,7 +261,6 @@ const AddFederationForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
           <div>
             <label className="block text-sm font-medium mb-1">Legal Representative Phone</label>
             <Input
-
               type="tel"
               name="legalRepresentativePhone"
               value={formData.legalRepresentativePhone}

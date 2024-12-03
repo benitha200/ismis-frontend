@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import PageLoading from '../components/ui/PageLoading';
 import Message from '../components/ui/Message';
@@ -8,6 +8,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '.
 import axiosInstance from '../utils/axiosInstance';
 import Modal from '../components/ui/Modal';
 import AddSportsProfessionalForm from '../components/forms/AddSportsProfessionalForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/Dialog';
 
 const SportsProfessionals = () => {
   const [professionals, setProfessionals] = useState([]);
@@ -20,18 +21,24 @@ const SportsProfessionals = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState('Professionals'); // Default to Professionals tab
+  const [activeTab, setActiveTab] = useState('Professionals');
 
   const [disciplineForm, setDisciplineForm] = useState({ name: '', type: '' });
   const [functionForm, setFunctionForm] = useState({ name: '', disciplineId: '' });
 
   const [editingDiscipline, setEditingDiscipline] = useState(null);
-  const [addingDiscipline, setAddingDiscipline] = useState(null);
+  const [addingDiscipline, setAddingDiscipline] = useState(false);
   const [editingFunction, setEditingFunction] = useState(null);
-  const [addingFunction, setAddingFunction] = useState(null);
+  const [addingFunction, setAddingFunction] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState(null);
-  const [addingProfessional, setAddingProfessional] = useState(null);
-  
+  const [addingProfessional, setAddingProfessional] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const rowsPerPage = 5;
+
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchDisciplines = async () => {
@@ -78,7 +85,44 @@ const SportsProfessionals = () => {
     fetchProfessionals();
   }, []);
 
-  // Handlers for Discipline Management
+  useEffect(() => {
+    const filterData = () => {
+      if (activeTab === 'Professionals') {
+        setFilteredProfessionals(
+          professionals.filter((professional) =>
+            `${professional.firstName} ${professional.lastName} ${professional.function} ${professional.nationality}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+          )
+        );
+      } else if (activeTab === 'Disciplines') {
+        setFilteredDisciplines(
+          disciplines.filter((discipline) =>
+            `${discipline.name} ${discipline.type}`.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        );
+      } else if (activeTab === 'Functions') {
+        setFilteredFunctions(
+          functions.filter((func) =>
+            `${func.name} ${disciplines.find((d) => d.id === func.disciplineId)?.name}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+          )
+        );
+      }
+    };
+
+    filterData();
+  }, [searchTerm, activeTab, professionals, disciplines, functions]);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  const getCurrentPageData = (data) => {
+    const indexOfLastRow = currentPage * rowsPerPage;
+    const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+    return data.slice(indexOfFirstRow, indexOfLastRow);
+  };
+
   const handleAddDiscipline = async () => {
     try {
       const response = await axiosInstance.post('/disciplines', disciplineForm);
@@ -86,6 +130,7 @@ const SportsProfessionals = () => {
       setFilteredDisciplines((prevState) => [...prevState, response.data]);
       toast.success('Discipline added successfully');
       setDisciplineForm({ name: '', type: '' });
+      setAddingDiscipline(false);
     } catch (error) {
       toast.error('Error adding discipline');
     }
@@ -108,12 +153,13 @@ const SportsProfessionals = () => {
     }
   };
 
-  const handleDeleteDiscipline = async (discipline) => {
+  const handleDeleteDiscipline = async () => {
     try {
-      await axiosInstance.delete(`/disciplines/${discipline.id}`);
-      setDisciplines((prevState) => prevState.filter((d) => d.id !== discipline.id));
-      setFilteredDisciplines((prevState) => prevState.filter((d) => d.id !== discipline.id));
+      await axiosInstance.delete(`/disciplines/${itemToDelete.id}`);
+      setDisciplines((prevState) => prevState.filter((d) => d.id !== itemToDelete.id));
+      setFilteredDisciplines((prevState) => prevState.filter((d) => d.id !== itemToDelete.id));
       toast.success('Discipline deleted successfully');
+      setDeleteModalOpen(false);
     } catch (error) {
       toast.error('Error deleting discipline');
     }
@@ -121,39 +167,27 @@ const SportsProfessionals = () => {
 
   const handleAddFunction = async () => {
     try {
-      // Log the function form data to check its structure
-      console.log('Form data being sent:', functionForm);
-  
-      // Ensure the data is in the correct format:
       const payload = {
         name: functionForm.name,
-        disciplineId: Number(functionForm.disciplineId)  // Ensure it's a number
+        disciplineId: Number(functionForm.disciplineId)
       };
-  
-      // Check if the disciplineId is valid before sending the request
+
       if (!payload.disciplineId || !payload.name) {
         toast.error('Please ensure both name and discipline are selected');
-        return; // Exit the function if the data is invalid
+        return;
       }
-  
-      // Send the request with the correct payload
+
       const response = await axiosInstance.post('/functions', payload);
-  
-      // Handle success
       setFunctions((prevState) => [...prevState, response.data]);
       setFilteredFunctions((prevState) => [...prevState, response.data]);
       toast.success('Function added successfully');
-  
-      // Reset the form
       setFunctionForm({ name: '', disciplineId: '' });
-  
+      setAddingFunction(false);
     } catch (error) {
-      // Log the error to the console and show a toast notification
-      console.error('Error occurred:', error.response);
       toast.error('Error adding function');
     }
   };
-  
+
   const handleEditFunction = async () => {
     try {
       const response = await axiosInstance.put(`/functions/${editingFunction.id}`, functionForm);
@@ -171,33 +205,33 @@ const SportsProfessionals = () => {
     }
   };
 
-  const handleDeleteFunction = async (func) => {
+  const handleDeleteFunction = async () => {
     try {
-      await axiosInstance.delete(`/functions/${func.id}`);
-      setFunctions((prevState) => prevState.filter((f) => f.id !== func.id));
-      setFilteredFunctions((prevState) => prevState.filter((f) => f.id !== func.id));
+      await axiosInstance.delete(`/functions/${itemToDelete.id}`);
+      setFunctions((prevState) => prevState.filter((f) => f.id !== itemToDelete.id));
+      setFilteredFunctions((prevState) => prevState.filter((f) => f.id !== itemToDelete.id));
       toast.success('Function deleted successfully');
+      setDeleteModalOpen(false);
     } catch (error) {
       toast.error('Error deleting function');
     }
   };
 
-  // Handlers for Sports Professionals
-  const handleAddProfessional = async () => {
+  const handleAddProfessional = async (professionalData) => {
     try {
-      const response = await axiosInstance.post('/official-referees', professionals);
+      const response = await axiosInstance.post('/official-referees', professionalData);
       setProfessionals((prevState) => [...prevState, response.data]);
       setFilteredProfessionals((prevState) => [...prevState, response.data]);
       toast.success('Professional added successfully');
-      setAddingProfessional({ name: '', username: '', phone: '', nationality: '' });
+      setAddingProfessional(false);
     } catch (error) {
       toast.error('Error adding professional');
     }
   };
 
-  const handleEditProfessional = async () => {
+  const handleEditProfessional = async (professionalData) => {
     try {
-      const response = await axiosInstance.put(`/official-referees/${editingProfessional.id}`, professionalForm);
+      const response = await axiosInstance.put(`/official-referees/${editingProfessional.id}`, professionalData);
       setProfessionals((prevState) =>
         prevState.map((p) => (p.id === editingProfessional.id ? response.data : p))
       );
@@ -206,138 +240,203 @@ const SportsProfessionals = () => {
       );
       toast.success('Professional updated successfully');
       setEditingProfessional(null);
-      setProfessionalForm({ name: '', username: '', phone: '', nationality: '' });
     } catch (error) {
       toast.error('Error updating professional');
     }
   };
 
-  const handleDeleteProfessional = async (professional) => {
+  const handleDeleteProfessional = async () => {
     try {
-      await axiosInstance.delete(`/official-referees/${professional.id}`);
-      setProfessionals((prevState) => prevState.filter((p) => p.id !== professional.id));
-      setFilteredProfessionals((prevState) => prevState.filter((p) => p.id !== professional.id));
+      await axiosInstance.delete(`/official-referees/${itemToDelete.id}`);
+      setProfessionals((prevState) => prevState.filter((p) => p.id !== itemToDelete.id));
+      setFilteredProfessionals((prevState) => prevState.filter((p) => p.id !== itemToDelete.id));
       toast.success('Professional deleted successfully');
+      setDeleteModalOpen(false);
     } catch (error) {
       toast.error('Error deleting professional');
     }
   };
 
   const renderDisciplineRow = (discipline) => (
-    <tr key={discipline.id}>
-      <td>{discipline.name}</td>
-      <td>{discipline.type}</td>
-      <td>
+    <TableRow key={discipline.id}>
+      <TableCell>{discipline.name}</TableCell>
+      <TableCell>{discipline.type}</TableCell>
+      <TableCell>
         <button
           onClick={() => {
             setEditingDiscipline(discipline);
             setDisciplineForm({ name: discipline.name, type: discipline.type });
           }}
+          className="p-2 text-blue-500 hover:bg-blue-100 rounded-md focus:outline-none"
+          title="Edit Discipline"
         >
-          <Edit />
+          <Edit className="w-5 h-5" />
         </button>
-        <button onClick={() => handleDeleteDiscipline(discipline)}>
-          <Trash2 />
+        <button
+          onClick={() => {
+            setItemToDelete(discipline);
+            setDeleteModalOpen(true);
+          }}
+          className="p-2 text-red-500 hover:bg-red-100 rounded-md focus:outline-none ml-2"
+          title="Delete Discipline"
+        >
+          <Trash2 className="w-5 h-5" />
         </button>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 
   const renderFunctionRow = (func) => (
-    <tr key={func.id}>
-      <td>{func.name}</td>
-      <td>{disciplines.find((d) => d.id === func.disciplineId)?.name}</td>
-      <td>
+    <TableRow key={func.id}>
+      <TableCell>{func.name}</TableCell>
+      <TableCell>{disciplines.find((d) => d.id === func.disciplineId)?.name}</TableCell>
+      <TableCell>
         <button
           onClick={() => {
             setEditingFunction(func);
             setFunctionForm({ name: func.name, disciplineId: func.disciplineId });
           }}
-        >
-          <Edit />
-        </button>
-        <button onClick={() => handleDeleteFunction(func)}>
-          <Trash2 />
-        </button>
-      </td>
-    </tr>
-  );
-
-  const renderProfessionalRow = (professional) => (
-    <tr key={professional.id}>
-      <td>{professional.firstName}</td>
-      <td>{professional.lastName}</td>
-      <td>{professional.function}</td>
-      <td>{professional.nationality}</td>
-      <td>
-        {/* Edit Button */}
-        <button
-          onClick={() => {
-            setEditingProfessional(editingProfessional); // Set the professional data to edit
-            setEditingProfessional(true); // Open the modal for editing
-          }}
           className="p-2 text-blue-500 hover:bg-blue-100 rounded-md focus:outline-none"
-          title="Edit Professional" // Tooltip text when hovering
+          title="Edit Function"
         >
           <Edit className="w-5 h-5" />
         </button>
-  
-        {/* Delete Button */}
         <button
-          onClick={() => handleDeleteProfessional(professional)}
+          onClick={() => {
+            setItemToDelete(func);
+            setDeleteModalOpen(true);
+          }}
           className="p-2 text-red-500 hover:bg-red-100 rounded-md focus:outline-none ml-2"
-          title="Delete Professional" // Tooltip text when hovering
+          title="Delete Function"
         >
           <Trash2 className="w-5 h-5" />
         </button>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
+
+  const renderProfessionalRow = (professional) => (
+    <TableRow key={professional.id}>
+      <TableCell>{professional.firstName}</TableCell>
+      <TableCell>{professional.lastName}</TableCell>
+      <TableCell>{professional.function}</TableCell>
+      <TableCell>{professional.nationality}</TableCell>
+      <TableCell>
+        <button
+          onClick={() => {
+            setEditingProfessional(professional);
+            setAddingProfessional(true);
+          }}
+          className="p-2 text-blue-500 hover:bg-blue-100 rounded-md focus:outline-none"
+          title="Edit Professional"
+        >
+          <Edit className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => {
+            setItemToDelete(professional);
+            setDeleteModalOpen(true);
+          }}
+          className="p-2 text-red-500 hover:bg-red-100 rounded-md focus:outline-none ml-2"
+          title="Delete Professional"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
+      </TableCell>
+    </TableRow>
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Tabs for navigation */}
-      <div className="flex space-x-4">
-        <Button onClick={() => setActiveTab('Professionals')} variant={activeTab === 'Professionals' ? 'solid' : 'outline'}>
-          Sports Professionals
-        </Button>
-        <Button onClick={() => setActiveTab('Disciplines')} variant={activeTab === 'Disciplines' ? 'solid' : 'outline'}>
-          Manage Disciplines
-        </Button>
-        <Button onClick={() => setActiveTab('Functions')} variant={activeTab === 'Functions' ? 'solid' : 'outline'}>
-          Manage Functions
-        </Button>
+    <div className="p-6 bg-gray-50">
+      {message && (
+        <Message type={message.type} message={message.text} onClose={() => setMessage(null)} />
+      )}
+
+      <div className="mb-6 overflow-x-auto">
+        <nav className="flex space-x-4 min-w-max">
+          <button
+            onClick={() => setActiveTab('Professionals')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${
+              activeTab === 'Professionals' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Sports Professionals
+          </button>
+          <button
+            onClick={() => setActiveTab('Disciplines')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${
+              activeTab === 'Disciplines' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Manage Disciplines
+          </button>
+          <button
+            onClick={() => setActiveTab('Functions')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${
+              activeTab === 'Functions' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Manage Functions
+          </button>
+        </nav>
       </div>
 
-      {/* Content for Sports Professionals */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-full p-2 border rounded-lg"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       {activeTab === 'Professionals' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex justify-between">
             <h3 className="text-xl font-semibold">Sports Professionals</h3>
-            <Button onClick={() => setAddingProfessional(true)}>Add New</Button>
-            
+            <Button onClick={() => setAddingProfessional(true)} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New
+            </Button>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Firstname</TableHead>
-                <TableHead>LastName</TableHead>
+                <TableHead>First Name</TableHead>
+                <TableHead>Last Name</TableHead>
+                <TableHead>Function</TableHead>
                 <TableHead>Nationality</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>{filteredProfessionals.map(renderProfessionalRow)}</TableBody>
+            <TableBody>{getCurrentPageData(filteredProfessionals).map(renderProfessionalRow)}</TableBody>
           </Table>
+          <div className="flex justify-between mt-4">
+            <Button
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage * rowsPerPage >= filteredProfessionals.length}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Content for Manage Disciplines */}
       {activeTab === 'Disciplines' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex justify-between">
             <h3 className="text-xl font-semibold">Manage Disciplines</h3>
-            <Button onClick={() => setAddingDiscipline(true)}>Add New</Button>
-
+            <Button onClick={() => setAddingDiscipline(true)} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New
+            </Button>
           </div>
           <Table>
             <TableHeader>
@@ -347,17 +446,33 @@ const SportsProfessionals = () => {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>{filteredDisciplines.map(renderDisciplineRow)}</TableBody>
+            <TableBody>{getCurrentPageData(filteredDisciplines).map(renderDisciplineRow)}</TableBody>
           </Table>
+          <div className="flex justify-between mt-4">
+            <Button
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage * rowsPerPage >= filteredDisciplines.length}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Content for Manage Functions */}
       {activeTab === 'Functions' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex justify-between">
             <h3 className="text-xl font-semibold">Manage Functions</h3>
-            <Button onClick={() => setAddingFunction(true)}>Add New</Button>
+            <Button onClick={() => setAddingFunction(true)} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New
+            </Button>
           </div>
           <Table>
             <TableHeader>
@@ -367,16 +482,32 @@ const SportsProfessionals = () => {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>{filteredFunctions.map(renderFunctionRow)}</TableBody>
+            <TableBody>{getCurrentPageData(filteredFunctions).map(renderFunctionRow)}</TableBody>
           </Table>
+          <div className="flex justify-between mt-4">
+            <Button
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage * rowsPerPage >= filteredFunctions.length}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Discipline Modal */}
-      {editingDiscipline !== null && (
+      {(addingDiscipline || editingDiscipline !== null) && (
         <Modal
-          isOpen={true}
-          onClose={() => setEditingDiscipline(null)}
+          isOpen={addingDiscipline || editingDiscipline !== null}
+          onClose={() => {
+            setAddingDiscipline(false);
+            setEditingDiscipline(null);
+          }}
           title={editingDiscipline ? 'Edit Discipline' : 'Add Discipline'}
         >
           <form
@@ -416,23 +547,22 @@ const SportsProfessionals = () => {
         </Modal>
       )}
 
-
-
-
-      {/* add Discipline Modal */}
-      {addingDiscipline !== null && (
+      {(addingFunction || editingFunction !== null) && (
         <Modal
-          isOpen={true}
-          onClose={() => setAddingDiscipline(null)}
-          title={addingDiscipline ? 'Add Discipline' : 'Edit Discipline'}
+          isOpen={addingFunction || editingFunction !== null}
+          onClose={() => {
+            setAddingFunction(false);
+            setEditingFunction(null);
+          }}
+          title={editingFunction ? 'Edit Function' : 'Add Function'}
         >
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (addingDiscipline) {
-                handleAddDiscipline();
+              if (editingFunction) {
+                handleEditFunction();
               } else {
-                handleEditDiscipline();
+                handleAddFunction();
               }
             }}
           >
@@ -442,20 +572,26 @@ const SportsProfessionals = () => {
                 <input
                   type="text"
                   className="input"
-                  value={disciplineForm.name}
-                  onChange={(e) => setDisciplineForm({ ...disciplineForm, name: e.target.value })}
+                  value={functionForm.name}
+                  onChange={(e) => setFunctionForm({ ...functionForm, name: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <label className="block font-semibold">Type</label>
-                <input
-                  type="text"
+                <label className="block font-semibold">Discipline</label>
+                <select
                   className="input"
-                  value={disciplineForm.type}
-                  onChange={(e) => setDisciplineForm({ ...disciplineForm, type: e.target.value })}
+                  value={functionForm.disciplineId}
+                  onChange={(e) => setFunctionForm({ ...functionForm, disciplineId: e.target.value })}
                   required
-                />
+                >
+                  <option value="">Select Discipline</option>
+                  {disciplines.map((discipline) => (
+                    <option key={discipline.id} value={discipline.id}>
+                      {discipline.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <Button type="submit">Save</Button>
             </div>
@@ -463,171 +599,51 @@ const SportsProfessionals = () => {
         </Modal>
       )}
 
-
-
-
-      {/* add const [editingProfessional, setEditingProfessional] = useState(null);
-   Modal */}
-      {/* {addingProfessional !== null && (
-        <Modal
-          isOpen={true}
-          onClose={() => setAddingProfessional(null)}
-          title={addingProfessional ? 'Add Professional' : 'Edit Professional'}
-        >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (addingDiscipline) {
-                handleAddDiscipline();
-              } else {
-                handleEditDiscipline();
-              }
-            }}
-          >
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block font-semibold">Name</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={disciplineForm.name}
-                  onChange={(e) => setDisciplineForm({ ...disciplineForm, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block font-semibold">Type</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={disciplineForm.type}
-                  onChange={(e) => setDisciplineForm({ ...disciplineForm, type: e.target.value })}
-                  required
-                />
-              </div>
-              <Button type="submit">Save</Button>
-            </div>
-          </form>
-        </Modal>
-      )} */}
-
-    <Modal isOpen={addingProfessional} onClose={() => setAddingProfessional(false)} title="Add Professional">
-         
-<AddSportsProfessionalForm
-        isOpen={professionals}
+      <Modal
+        isOpen={addingProfessional || editingProfessional !== null}
         onClose={() => {
           setAddingProfessional(false);
-          setEditingProfessional(false); // Clear edit state on close
+          setEditingProfessional(null);
         }}
-        onAdd={handleAddProfessional }
-        sport={professionals} // Pass sportToEdit for editing
-      />
+        title={editingProfessional ? 'Edit Professional' : 'Add Professional'}
+      >
+        <AddSportsProfessionalForm
+          onCancel={() => {
+            setAddingProfessional(false);
+            setEditingProfessional(null);
+          }}
+          onSubmit={editingProfessional ? handleEditProfessional : handleAddProfessional}
+          initialData={editingProfessional || { firstName: '', lastName: '', function: '', nationality: '' }}
+          isSubmitting={isLoading}
+        />
       </Modal>
 
-
-      {/* Function Modal */}
-      {editingFunction !== null && (
-       <Modal
-       isOpen={true}
-       onClose={() => setEditingFunction(null)}
-       title={editingFunction ? 'Edit Function' : 'Add Function'}
-     >
-       <form
-         onSubmit={(e) => {
-           e.preventDefault();
-           if (editingFunction) {
-             handleEditFunction();
-           } else {
-             handleAddFunction();
-           }
-         }}
-       >
-         <div className="space-y-4">
-           <div className="space-y-2">
-             <label className="block font-semibold">Name</label>
-             <input
-               type="text"
-               className="input"
-               value={functionForm.name}
-               onChange={(e) => setFunctionForm({ ...functionForm, name: e.target.value })}
-               required
-             />
-           </div>
-           <div className="space-y-2">
-             <label className="block font-semibold">Discipline</label>
-             <select
-               className="input"
-               value={functionForm.disciplineId}
-               onChange={(e) => setFunctionForm({ ...functionForm, disciplineId: e.target.value })}
-               required
-             >
-               <option value="">Select Discipline</option>
-               {disciplines.map((discipline) => (
-                 <option key={discipline.id} value={discipline.id}>
-                   {discipline.name}
-                 </option>
-               ))}
-             </select>
-           </div>
-           <Button type="submit">Save</Button>
-         </div>
-       </form>
-     </Modal>
-
-      )}
-      
-      {/*add Function Modal */}
-      {addingFunction !== null && (
-       <Modal
-       isOpen={true}
-       onClose={() => setAddingFunction(null)}
-       title={addingFunction ? 'Add Function' : 'Edit Function'}
-     >
-       <form
-         onSubmit={(e) => {
-           e.preventDefault();
-           if (addingFunction) {
-             handleAddFunction();
-           } else {
-             handleEditFunction();
-           }
-         }}
-       >
-         <div className="space-y-4">
-           <div className="space-y-2">
-             <label className="block font-semibold">Name</label>
-             <input
-               type="text"
-               className="input"
-               value={functionForm.name}
-               onChange={(e) => setFunctionForm({ ...functionForm, name: e.target.value })}
-               required
-             />
-           </div>
-           <div className="space-y-2">
-             <label className="block font-semibold">Discipline</label>
-             <select
-               className="input"
-               value={functionForm.disciplineId}
-               onChange={(e) => setFunctionForm({ ...functionForm, disciplineId: e.target.value })}
-               required
-             >
-               <option value="">Select Discipline</option>
-               {disciplines.map((discipline) => (
-                 <option key={discipline.id} value={discipline.id}>
-                   {discipline.name}
-                 </option>
-               ))}
-             </select>
-           </div>
-           <Button type="submit">Save</Button>
-         </div>
-       </form>
-     </Modal>
-     
-     
-      )}
-
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="py-4">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold">{itemToDelete?.name || itemToDelete?.firstName}</span>? This action cannot be undone and will remove all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => {
+              if (activeTab === 'Professionals') handleDeleteProfessional();
+              else if (activeTab === 'Disciplines') handleDeleteDiscipline();
+              else if (activeTab === 'Functions') handleDeleteFunction();
+            }}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

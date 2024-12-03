@@ -24,8 +24,6 @@ import {
   DialogDescription,
 } from '../components/ui/dialog';
 import InstitutionForm from '../components/forms/InstitutionForm';
-
-// Import the StudentTransferForm component
 import StudentTransferForm from '../components/StudentTransferForm';
 
 const IsongaPrograms = () => {
@@ -40,7 +38,7 @@ const IsongaPrograms = () => {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [schools, setSchools] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5); // Updated to 5 rows per page
   const [showInstitutionModal, setShowInstitutionModal] = useState(false);
   const [selectedInstitution, setSelectedInstitution] = useState(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
@@ -314,6 +312,7 @@ const IsongaPrograms = () => {
                       value={itemsPerPage}
                       onChange={(e) => setItemsPerPage(Number(e.target.value))}
                     >
+                      <option value={5}>5</option>
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
@@ -399,6 +398,7 @@ const IsongaPrograms = () => {
                       value={itemsPerPage}
                       onChange={(e) => setItemsPerPage(Number(e.target.value))}
                     >
+                      <option value={5}>5</option>
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>

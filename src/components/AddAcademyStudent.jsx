@@ -1,3 +1,4 @@
+/* src/components/AddAcademyStudent.jsx */
 import React, { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Button } from './ui/button';
@@ -5,6 +6,7 @@ import { Input } from './ui/input';
 import { X, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import axiosInstance from '../utils/axiosInstance';
 
 function AddAcademyStudent({ isOpen, onClose, onAdd }) {
   const { isDarkMode } = useTheme();
@@ -30,7 +32,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
   });
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Options for select fields
   const genderOptions = ['Male', 'Female', 'Other'];
   const nationalityOptions = [
     'Rwandan', 'Kenyan', 'Ugandan', 'Tanzanian', 'Burundian', 
@@ -40,15 +41,11 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     'P1', 'P2', 'P3', 'P4', 'P5', 'P6',
     'S1', 'S2', 'S3', 'S4', 'S5', 'S6'
   ];
-
-  // Add identification type options
   const identificationTypes = ['ID', 'Passport', 'N/A'];
 
-  // Add state for school search
   const [schoolSearch, setSchoolSearch] = useState('');
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
 
-  // Mock schools/academies data (in real app, fetch from API)
   const [schools] = useState([
     { id: 1, name: 'Lycee de Kigali', type: 'Excellence school' },
     { id: 2, name: 'FAWE Girls School', type: 'Excellence school' },
@@ -61,13 +58,11 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     { id: 9, name: 'Amazero yubuzima', type: 'Youth Centre' }
   ]);
 
-  // Filter schools based on search
   const filteredSchools = schools.filter(school =>
     school.name.toLowerCase().includes(schoolSearch.toLowerCase()) ||
     school.type.toLowerCase().includes(schoolSearch.toLowerCase())
   );
 
-  // Handle school selection
   const handleSchoolSelect = (school) => {
     setFormData(prev => ({
       ...prev,
@@ -78,7 +73,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     setSchoolSearch('');
   };
 
-  // Update the form to include identification type selection
   const renderIdentificationFields = () => {
     switch (formData.identificationType) {
       case 'ID':
@@ -130,7 +124,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     }
   };
 
-  // Handle file input change
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -147,12 +140,10 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     e.preventDefault();
     
     try {
-      // Basic validation
       if (!formData.firstName || !formData.lastName || !formData.dateOfBirth) {
         throw new Error('Please fill in all required fields');
       }
 
-      // ID/Passport validation
       if (formData.identificationType === 'ID' && !formData.idNumber) {
         throw new Error('Please enter ID number');
       }
@@ -165,20 +156,19 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
           throw new Error('Please enter passport expiry date');
         }
         
-        // Validate expiry date
         const expiryDate = new Date(formData.passportExpiryDate);
         if (expiryDate <= new Date()) {
           throw new Error('Passport has expired');
         }
       }
 
-      // Age validation (12-17)
       const age = new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear();
       if (age < 12 || age > 17) {
         throw new Error('Student must be between 12 and 17 years old');
       }
 
-      await onAdd(formData);
+      await axiosInstance.post('/academy-students', formData);
+      onAdd(formData);
       onClose();
       toast.success('Student added successfully');
     } catch (error) {
@@ -186,7 +176,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     }
   };
 
-  // Update the School/Academy section in the form
   const renderSchoolField = () => (
     <div className="grid grid-cols-2 gap-4">
       <div>
@@ -209,7 +198,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
           
-          {/* Selected school display */}
           {formData.schoolName && !showSchoolDropdown && (
             <div className="mt-2 p-2 bg-blue-50 rounded-md flex justify-between items-center">
               <div>
@@ -228,7 +216,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
             </div>
           )}
 
-          {/* School search dropdown */}
           {showSchoolDropdown && schoolSearch && (
             <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border">
               {filteredSchools.length > 0 ? (
@@ -267,58 +254,19 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     </div>
   );
 
-  // Add state for game search
   const [gameSearch, setGameSearch] = useState('');
   const [showGameDropdown, setShowGameDropdown] = useState(false);
 
-  // Expanded list of sports/games
   const allGameTypes = [
-    // Team Sports
-    'Football',
-    'Basketball',
-    'Volleyball',
-    'Handball',
-    'Rugby',
-    'Cricket',
-    'Hockey',
-    'Baseball',
-    'Netball',
-    
-    // Individual Sports
-    'Tennis',
-    'Table Tennis',
-    'Badminton',
-    'Swimming',
-    'Athletics',
-    'Boxing',
-    'Wrestling',
-    'Judo',
-    'Karate',
-    'Taekwondo',
-    
-    // Racket Sports
-    'Squash',
-    'Pickleball',
-    
-    // Combat Sports
-    'Kickboxing',
-    'Mixed Martial Arts',
-    
-    // Other Sports
-    'Cycling',
-    'Golf',
-    'Gymnastics',
-    'Weightlifting',
-    'Chess',
-    'Archery'
-  ].sort(); // Sort alphabetically
+    'Football', 'Basketball', 'Volleyball', 'Handball', 'Rugby', 'Cricket', 'Hockey', 'Baseball', 'Netball',
+    'Tennis', 'Table Tennis', 'Badminton', 'Swimming', 'Athletics', 'Boxing', 'Wrestling', 'Judo', 'Karate', 'Taekwondo',
+    'Squash', 'Pickleball', 'Kickboxing', 'Mixed Martial Arts', 'Cycling', 'Golf', 'Gymnastics', 'Weightlifting', 'Chess', 'Archery'
+  ].sort();
 
-  // Filter games based on search
   const filteredGames = allGameTypes.filter(game =>
     game.toLowerCase().includes(gameSearch.toLowerCase())
   );
 
-  // Handle game selection
   const handleGameSelect = (game) => {
     setFormData(prev => ({
       ...prev,
@@ -328,7 +276,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     setGameSearch('');
   };
 
-  // Update the game type field in the form
   const renderGameTypeField = () => (
     <div>
       <label className="block mb-1 text-sm font-medium">Type of Game</label>
@@ -348,7 +295,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         </div>
         
-        {/* Selected game display */}
         {formData.gameType && !showGameDropdown && (
           <div className="mt-2 p-2 bg-blue-50 rounded-md flex justify-between items-center">
             <span className="font-medium">{formData.gameType}</span>
@@ -362,7 +308,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
           </div>
         )}
 
-        {/* Game search dropdown */}
         {showGameDropdown && gameSearch && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border">
             {filteredGames.length > 0 ? (
@@ -387,11 +332,9 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     </div>
   );
 
-  // Add state for nationality search
   const [nationalitySearch, setNationalitySearch] = useState('');
   const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
 
-  // Comprehensive list of world nationalities
   const allNationalities = [
     'Afghan', 'Albanian', 'Algerian', 'American', 'Andorran', 'Angolan', 'Antiguan', 'Argentine',
     'Armenian', 'Australian', 'Austrian', 'Azerbaijani', 'Bahamian', 'Bahraini', 'Bangladeshi',
@@ -423,12 +366,10 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     'Zambian', 'Zimbabwean'
   ].sort();
 
-  // Filter nationalities based on search
   const filteredNationalities = allNationalities.filter(nationality =>
     nationality.toLowerCase().includes(nationalitySearch.toLowerCase())
   );
 
-  // Handle nationality selection
   const handleNationalitySelect = (nationality) => {
     setFormData(prev => ({
       ...prev,
@@ -438,7 +379,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
     setNationalitySearch('');
   };
 
-  // Update the nationality field in the form to be searchable
   const renderNationalityField = () => (
     <div>
       <label className="block mb-1 text-sm font-medium">Nationality</label>
@@ -458,7 +398,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         </div>
         
-        {/* Selected nationality display */}
         {formData.nationality && !showNationalityDropdown && (
           <div className="mt-2 p-2 bg-blue-50 rounded-md flex justify-between items-center">
             <span className="font-medium">{formData.nationality}</span>
@@ -472,7 +411,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
           </div>
         )}
 
-        {/* Nationality search dropdown */}
         {showNationalityDropdown && nationalitySearch && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border">
             {filteredNationalities.length > 0 ? (
@@ -530,7 +468,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Passport Picture */}
                 <div>
                   <label className="block mb-1 text-sm font-medium">Passport Picture</label>
                   <div className="flex items-center space-x-4">
@@ -560,7 +497,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                   </div>
                 </div>
 
-                {/* Personal Information */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium">
@@ -588,7 +524,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                   </div>
                 </div>
 
-                {/* Gender and Date of Birth */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium">
@@ -619,7 +554,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                   </div>
                 </div>
 
-                {/* Place of Birth and Residence */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium">Place of Birth</label>
@@ -641,7 +575,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                   </div>
                 </div>
 
-                {/* Add Identification Type Selection */}
                 <div className="space-y-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium">
@@ -652,7 +585,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
                         identificationType: e.target.value,
-                        // Reset related fields when changing type
                         idNumber: '',
                         passportNumber: '',
                         passportExpiryDate: ''
@@ -666,11 +598,9 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                     </select>
                   </div>
 
-                  {/* Render ID/Passport fields based on selection */}
                   {renderIdentificationFields()}
                 </div>
 
-                {/* Replace the old nationality select with the new searchable version */}
                 <div className="grid grid-cols-2 gap-4">
                   {renderNationalityField()}
                   <div>
@@ -687,15 +617,12 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                   </div>
                 </div>
 
-                {/* Replace the old school fields with the new searchable version */}
                 {renderSchoolField()}
 
-                {/* Game Type */}
                 <div>
                   {renderGameTypeField()}
                 </div>
 
-                {/* Contact Information */}
                 <div>
                   <label className="block mb-1 text-sm font-medium">Contact</label>
                   <Input
@@ -706,7 +633,6 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex justify-end space-x-4 pt-4">
                   <Button
                     type="button"
@@ -731,4 +657,4 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
   );
 }
 
-export default AddAcademyStudent; 
+export default AddAcademyStudent;

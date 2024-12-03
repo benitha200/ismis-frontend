@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
 import Select from 'react-select';
-import axiosInstance from '../../utils/axiosInstance'; // Import the axios instance
+import axiosInstance from '../../utils/axiosInstance';
 
 const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
-  // Initialize the state for employees (participants)
   const [availableProfessionals, setAvailableProfessionals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -13,27 +12,20 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
   useEffect(() => {
     const fetchEmployees = async () => {
       setLoading(true);
-      setError(null); // Reset error state before making the request
+      setError(null);
       try {
-        const response = await axiosInstance.get('/employees'); // Ensure this endpoint is correct
-        console.log('API response:', response); // Check the structure of the response
-
-        // Check if the response contains the "employees" key and it's an array
+        const response = await axiosInstance.get('/employees');
         if (response.data && Array.isArray(response.data.employees)) {
           const employees = response.data.employees.map((employee) => ({
-            value: employee.email, // Use employee email or another unique identifier as the 'value'
-            label: `${employee.firstname} ${employee.lastname}`, // Display name
-            details: {
-              type: employee.employee_type, // Add any additional details you need from the employee object
-              email: employee.email, // Store email as additional information
-            },
+            value: employee.id, // Use employee ID as the 'value'
+            label: `${employee.firstname} ${employee.lastname}`,
           }));
-          setAvailableProfessionals(employees); // Set the employee data
+          setAvailableProfessionals(employees);
         } else {
           setError('Failed to load employees. Invalid data format.');
         }
       } catch (err) {
-        console.error('Error fetching employees:', err); // Log the error for debugging
+        console.error('Error fetching employees:', err);
         setError('Failed to load employees. Please try again later.');
       } finally {
         setLoading(false);
@@ -41,15 +33,15 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
     };
 
     fetchEmployees();
-  }, []); // Empty dependency array ensures this runs once when the component mounts
+  }, []);
 
   // Initialize form data
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
-    fromDate: initialData?.startDate || '', // Ensure startDate defaults to empty string
-    toDate: initialData?.endDate || '', // Ensure endDate defaults to empty string
+    fromDate: initialData?.fromDate || '',
+    toDate: initialData?.toDate || '',
     organiser: initialData?.organiser || '',
-    participants: initialData?.participants || [], // Ensure participants is always an array
+    participants: initialData?.participants || [],
   });
 
   // Update form data when initialData changes
@@ -57,8 +49,8 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
     if (initialData) {
       setFormData({
         title: initialData.title || '',
-        fromDate: initialData.startDate || '',
-        toDate: initialData.endDate || '',
+        fromDate: initialData.fromDate || '',
+        toDate: initialData.toDate || '',
         organiser: initialData.organiser || '',
         participants: initialData.participants || [],
       });
@@ -67,28 +59,17 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value,
-        },
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   // Handle multi-select changes for participants
   const handleParticipantChange = (selectedOptions) => {
     setFormData(prev => ({
       ...prev,
-      participants: selectedOptions ? selectedOptions.map(option => option.value) : [], // Ensure participants is always an array of ids
+      participants: selectedOptions ? selectedOptions.map(option => option.value) : [],
     }));
   };
 
@@ -99,28 +80,25 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
     setError(null);
 
     try {
-      // Validation
       if (!formData.title || !formData.fromDate || !formData.organiser) {
         throw new Error('Please fill in all required fields');
       }
 
-      // Prepare submission data
       const submissionData = {
         title: formData.title,
         fromDate: formData.fromDate,
         toDate: formData.toDate,
         organiser: formData.organiser,
-        participants: formData.participants, // Just the array of participant ids
+        participants: formData.participants,
       };
 
-      // If there's initialData, it's an update, otherwise a create
-      if (initialData) {
-        await onSubmit({ ...submissionData, id: initialData.id }); // For edit, include the id
-      } else {
-        await onSubmit(submissionData); // For add, just send the data
-      }
+      console.log('Submitting data:', submissionData); // Debugging: log the data being sent
 
-      // Reset form
+      // Use axiosInstance directly to see if there's an issue with the onSubmit function
+      const response = await axiosInstance.post('/trainings', submissionData);
+      console.log('Response:', response);
+
+      // Reset form if successful
       setFormData({
         title: '',
         fromDate: '',
@@ -128,8 +106,14 @@ const AddTrainingForm = ({ onSubmit, onCancel, isSubmitting, initialData }) => {
         organiser: '',
         participants: [],
       });
+
+      // Call onSubmit if provided
+      if (onSubmit) {
+        await onSubmit(submissionData);
+      }
     } catch (err) {
-      setError(err.message);
+      console.error('Error submitting form:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to submit form');
     } finally {
       setLoading(false);
     }

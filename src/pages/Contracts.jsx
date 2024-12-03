@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Search, Plus, Eye, Edit, Download, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../utils/axiosInstance';
@@ -29,7 +29,7 @@ function Contracts() {
         setContracts(response.data);
       } catch (error) {
         toast.error('Failed to fetch contracts');
-        console.error(error);
+        console.error('Fetch error:', error);
       }
     };
 
@@ -71,7 +71,7 @@ function Contracts() {
       toast.success('Contract added successfully');
     } catch (error) {
       toast.error('Failed to add contract');
-      console.error(error);
+      console.error('Add error:', error);
     }
   };
 
@@ -97,7 +97,7 @@ function Contracts() {
       toast.success('Contract updated successfully');
     } catch (error) {
       toast.error('Failed to update contract');
-      console.error(error);
+      console.error('Edit error:', error);
     }
   };
 
@@ -115,7 +115,7 @@ function Contracts() {
       toast.success('Contract deleted successfully');
     } catch (error) {
       toast.error('Failed to delete contract');
-      console.error(error);
+      console.error('Delete error:', error);
     }
   };
 

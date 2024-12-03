@@ -62,6 +62,10 @@ function NationalTeams() {
     appearances: ''
   });
 
+  const [teamPage, setTeamPage] = useState(0);
+  const [playerPage, setPlayerPage] = useState(0);
+  const rowsPerPage = 5;
+
   const tabs = ['Manage National Teams', 'Manage Players', 'Player Appearance'];
 
   const teamColumns = [
@@ -359,12 +363,35 @@ function NationalTeams() {
     </div>
   );
 
+  const renderPaginationControls = (currentPage, totalPages, setPage) => (
+    <div className="flex justify-between items-center mt-4">
+      <Button
+        onClick={() => setPage(currentPage - 1)}
+        disabled={currentPage === 0}
+      >
+        Previous
+      </Button>
+      <span>
+        Page {currentPage + 1} of {totalPages}
+      </span>
+      <Button
+        onClick={() => setPage(currentPage + 1)}
+        disabled={currentPage >= totalPages - 1}
+      >
+        Next
+      </Button>
+    </div>
+  );
+
   const renderContent = () => {
     if (loading) {
       return <div>Loading...</div>;
     }
 
     if (activeTab === 'Manage National Teams') {
+      const totalTeamPages = Math.ceil(teams.length / rowsPerPage);
+      const paginatedTeams = teams.slice(teamPage * rowsPerPage, (teamPage + 1) * rowsPerPage);
+
       return (
         <div className="transition-all duration-200 ease-in-out">
           <div className="bg-white rounded-lg shadow overflow-x-auto">
@@ -380,8 +407,8 @@ function NationalTeams() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {teams.length > 0 ? (
-                  teams.map((team) => (
+                {paginatedTeams.length > 0 ? (
+                  paginatedTeams.map((team) => (
                     <tr key={team.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">{team.id}</td>
                       <td className="px-4 py-3">{team.teamName}</td>
@@ -412,9 +439,13 @@ function NationalTeams() {
               </tbody>
             </table>
           </div>
+          {renderPaginationControls(teamPage, totalTeamPages, setTeamPage)}
         </div>
       );
     } else if (activeTab === 'Manage Players') {
+      const totalPlayerPages = Math.ceil(players.length / rowsPerPage);
+      const paginatedPlayers = players.slice(playerPage * rowsPerPage, (playerPage + 1) * rowsPerPage);
+
       return (
         <div className="transition-all duration-200 ease-in-out">
           <div className="mb-4">
@@ -439,8 +470,8 @@ function NationalTeams() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {players.length > 0 ? (
-                  players.map((player) => (
+                {paginatedPlayers.length > 0 ? (
+                  paginatedPlayers.map((player) => (
                     <tr key={player.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">{player.name}</td>
                       <td className="px-4 py-3">{player.teamName}</td>
@@ -475,6 +506,7 @@ function NationalTeams() {
               </tbody>
             </table>
           </div>
+          {renderPaginationControls(playerPage, totalPlayerPages, setPlayerPage)}
         </div>
       );
     } else if (activeTab === 'Player Appearance') {
@@ -966,8 +998,7 @@ function NationalTeams() {
         >
           <div className="space-y-4">
             <p>Are you sure you want to delete this player? This action cannot be undone.</p>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setShowPlayerDeleteDialog(false)}>
+            <div className="flex justify-end space-x-2">              <Button variant="outline" onClick={() => setShowPlayerDeleteDialog(false)}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={confirmPlayerDelete}>
@@ -1000,3 +1031,4 @@ function NationalTeams() {
 }
 
 export default NationalTeams;
+

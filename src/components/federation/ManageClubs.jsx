@@ -1,3 +1,4 @@
+/* src/components/federation/ManageClubs.jsx */
 import React, { useState, useEffect } from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/table';
 import Modal from '../ui/Modal';
@@ -5,9 +6,10 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import { Eye, Edit, Trash2, Users, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import EditClubModal from './EditClubModal';
-import AddClubForm from './AddClubForm'; // Import the AddClubForm
+import AddClubForm from './AddClubForm';
 import axios from '../../utils/axiosInstance';
 import { useDarkMode } from '../../contexts/DarkModeContext';
+import { Button } from '../ui/button'; // Import the Button component
 
 const ManageClubs = () => {
   const { isDarkMode } = useDarkMode();
@@ -24,6 +26,9 @@ const ManageClubs = () => {
   const [federations, setFederations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 5;
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
@@ -54,6 +59,12 @@ const ManageClubs = () => {
     const matchesYear = selectedYear ? club.yearFounded === parseInt(selectedYear, 10) : true;
     return matchesSearchTerm && matchesFederation && matchesYear;
   });
+
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentClubs = filteredClubs.slice(indexOfFirstRow, indexOfLastRow);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const handleAddClub = () => setShowAddClubModal(true);
 
@@ -173,59 +184,75 @@ const ManageClubs = () => {
         ) : filteredClubs.length === 0 ? (
           <p>No clubs found for this federation or search criteria.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Logo</TableHead>
-                <TableHead>Club Name</TableHead>
-                <TableHead>Federation</TableHead>
-                <TableHead>Year Founded</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredClubs.map((club) => (
-                <TableRow key={club.id}>
-                  <TableCell>
-                    {club.logo && <img src={club.logo} alt={club.name} className="w-10 h-10 object-cover" />}
-                  </TableCell>
-                  <TableCell>{club.name}</TableCell>
-                  <TableCell>{federations.find((fed) => fed.id === club.federationId)?.name}</TableCell>
-                  <TableCell>{club.yearFounded}</TableCell>
-                  <TableCell className="flex gap-2">
-                    <button
-                      className="p-2 hover:text-blue-500 focus:outline-none"
-                      onClick={() => handleViewDetails(club)}
-                      title="View Details"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="p-2 hover:text-green-500 focus:outline-none"
-                      onClick={() => handleEdit(club)}
-                      title="Edit Club"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="p-2 hover:text-red-500 focus:outline-none"
-                      onClick={() => handleDeleteClick(club)}
-                      title="Delete Club"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="p-2 hover:text-purple-500 focus:outline-none"
-                      onClick={() => handleViewPlayers(club)}
-                      title="View Players"
-                    >
-                      <Users className="w-5 h-5" />
-                    </button>
-                  </TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Logo</TableHead>
+                  <TableHead>Club Name</TableHead>
+                  <TableHead>Federation</TableHead>
+                  <TableHead>Year Founded</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {currentClubs.map((club) => (
+                  <TableRow key={club.id}>
+                    <TableCell>
+                      {club.logo && <img src={club.logo} alt={club.name} className="w-10 h-10 object-cover" />}
+                    </TableCell>
+                    <TableCell>{club.name}</TableCell>
+                    <TableCell>{federations.find((fed) => fed.id === club.federationId)?.name}</TableCell>
+                    <TableCell>{club.yearFounded}</TableCell>
+                    <TableCell className="flex gap-2">
+                      <button
+                        className="p-2 hover:text-blue-500 focus:outline-none"
+                        onClick={() => handleViewDetails(club)}
+                        title="View Details"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="p-2 hover:text-green-500 focus:outline-none"
+                        onClick={() => handleEdit(club)}
+                        title="Edit Club"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="p-2 hover:text-red-500 focus:outline-none"
+                        onClick={() => handleDeleteClick(club)}
+                        title="Delete Club"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="p-2 hover:text-purple-500 focus:outline-none"
+                        onClick={() => handleViewPlayers(club)}
+                        title="View Players"
+                      >
+                        <Users className="w-5 h-5" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between mt-4">
+              <Button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={indexOfLastRow >= filteredClubs.length}
+              >
+                Next
+              </Button>
+            </div>
+          </>
         )}
       </div>
 

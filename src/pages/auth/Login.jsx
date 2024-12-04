@@ -34,6 +34,7 @@ function Login() {
       }
 
       // Log user details to the console
+      localStorage.setItem('isAuthenticated',true);
       console.log('Logged-in User Details:', loggedInUser);
 
       navigate('/dashboard');

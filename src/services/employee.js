@@ -43,16 +43,23 @@ export const createEmployee = async (data) => {
   };
   
 
-export const updateEmployee = async (data) => {
-  try {
-    const response = await axiosInstance.put(`/employees/${data.id}`, data); // Assuming `id` is used for updates
-    toast.success('Employee updated successfully');
-    return response.data;
-  } catch (error) {
-    console.error('Error updating employee:', error);
-    handleApiError(error, 'Failed to update employee');
-  }
-};
+  export const updateEmployee = async (employeeData) => {
+    try {
+      console.log(employeeData);
+  
+      const { id, ...data } = employeeData; // Destructure id and the rest of the data
+      console.log(`URL /employees/${id}`);
+  
+      const response = await axiosInstance.put(`/employees/${id}`, data);
+      toast.success('Employee updated successfully');
+  
+      return response.data;
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      handleApiError(error, 'Failed to update employee');
+    }
+  };
+  
 
 export const deleteEmployee = async (id) => {
   try {

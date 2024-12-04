@@ -1,4 +1,3 @@
-/* src/pages/Academies.jsx */
 import React, { useState, useEffect, Fragment } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
@@ -30,6 +29,11 @@ function Academies() {
   const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
   const [isDeleteStudentModalOpen, setIsDeleteStudentModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [transferData, setTransferData] = useState({
+    fromSchool: '',
+    student: '',
+    toSchool: ''
+  });
 
   useEffect(() => {
     fetchAcademies();
@@ -56,38 +60,6 @@ function Academies() {
     }
   };
 
-  const filteredAcademies = academies.filter(academy => {
-    const matchesSearch = Object.values(academy).some(value =>
-      value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return matchesSearch;
-  });
-
-  const filteredStudents = students.filter(student => {
-    const matchesFirstName = student.firstName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLastName = student.lastName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFirstName || matchesLastName;
-  });
-
-  const totalPages = Math.ceil(filteredAcademies.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const currentAcademies = filteredAcademies.slice(startIndex, startIndex + entriesPerPage);
-
-  const handleView = (academy) => {
-    setSelectedAcademy(academy);
-    setIsViewModalOpen(true);
-  };
-
-  const handleEdit = (academy) => {
-    setSelectedAcademy(academy);
-    setIsEditModalOpen(true);
-  };
-
-  const handleDelete = (academy) => {
-    setSelectedAcademy(academy);
-    setIsDeleteModalOpen(true);
-  };
-
   const handleDeleteConfirm = async () => {
     try {
       await axiosInstance.delete(`/academies/${selectedAcademy.id}`);
@@ -105,14 +77,9 @@ function Academies() {
       if (!updatedAcademy.id) {
         throw new Error('Academy ID is required for updating');
       }
-  
-      // Log the data being sent to the API
-      console.log('Updating academy with data:', updatedAcademy);
-  
-      // Make the PUT request
+
       const response = await axiosInstance.put(`/academies/${updatedAcademy.id}`, updatedAcademy);
-  
-      // Check if the response indicates success
+
       if (response.status === 200) {
         setAcademies(prev => prev.map(academy => 
           academy.id === updatedAcademy.id ? updatedAcademy : academy
@@ -127,7 +94,7 @@ function Academies() {
       toast.error('Failed to update academy');
     }
   };
-  
+
   const handleDeleteStudentConfirm = async () => {
     try {
       await axiosInstance.delete(`/academy-students/${selectedStudent.id}`);
@@ -145,95 +112,43 @@ function Academies() {
       if (!updatedStudent.id) {
         throw new Error('Student ID is required for updating');
       }
-      await axiosInstance.put(`/academy-students/${updatedStudent.id}`, updatedStudent);
-      setStudents(prev => prev.map(student => 
-        student.id === updatedStudent.id ? updatedStudent : student
-      ));
-      setIsEditStudentModalOpen(false);
-      toast.success('Student updated successfully');
+
+      const response = await axiosInstance.put(`/academy-students/${updatedStudent.id}`, updatedStudent);
+
+      if (response.status === 200) {
+        setStudents(prev => prev.map(student => 
+          student.id === updatedStudent.id ? updatedStudent : student
+        ));
+        setIsEditStudentModalOpen(false);
+        toast.success('Student updated successfully');
+      } else {
+        throw new Error('Failed to update student');
+      }
     } catch (error) {
       console.error('Error updating student:', error);
       toast.error('Failed to update student');
     }
   };
 
-  const renderActions = (academy) => (
-    <div className="flex items-center space-x-2">
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => handleView(academy)}
-        className="p-1 h-7 w-7"
-        title="View Details"
-      >
-        <Eye className="h-4 w-4 text-blue-600" />
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => handleEdit(academy)}
-        className="p-1 h-7 w-7"
-        title="Edit Academy"
-      >
-        <Edit className="h-4 w-4 text-green-600" />
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => handleDelete(academy)}
-        className="p-1 h-7 w-7"
-        title="Delete Academy"
-      >
-        <Trash2 className="h-4 w-4 text-red-600" />
-      </Button>
-    </div>
-  );
-
-  const renderAcademyDetails = (academy) => {
-    if (!academy) return null;
-
-    const details = [
-      { label: 'Name', value: academy.name },
-      { label: 'Location', value: academy.location },
-      { label: 'Category', value: academy.category },
-      { label: 'Number of Students', value: academy.students || 'N/A' }
-    ];
-
-    return (
-      <div className="space-y-4">
-        {details.map((detail, index) => (
-          <div key={index} className="flex justify-between">
-            <span className="font-medium text-gray-600">{detail.label}:</span>
-            <span>{detail.value}</span>
-          </div>
-        ))}
-      </div>
-    );
+  const handleTransferSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Implement the transfer logic here
+      console.log('Transferring student:', transferData);
+      // Reset transfer data after successful transfer
+      setTransferData({ fromSchool: '', student: '', toSchool: '' });
+      toast.success('Student transferred successfully');
+    } catch (error) {
+      console.error('Error transferring student:', error);
+      toast.error('Failed to transfer student');
+    }
   };
 
-  const renderStudentDetails = (student) => {
-    if (!student) return null;
-
-    const details = [
-      { label: 'Full Name', value: `${student.firstName} ${student.lastName}` },
-      { label: 'Gender', value: student.gender },
-      { label: 'Date of Birth', value: student.dateOfBirth },
-      { label: 'Nationality', value: student.nationality },
-      { label: 'Game', value: student.game },
-      { label: 'Class', value: student.class }
-    ];
-
-    return (
-      <div className="space-y-4">
-        {details.map((detail, index) => (
-          <div key={index} className="flex justify-between">
-            <span className="font-medium text-gray-600">{detail.label}:</span>
-            <span>{detail.value}</span>
-          </div>
-        ))}
-      </div>
-    );
+  const handleFromSchoolChange = (schoolId) => {
+    setTransferData(prev => ({ ...prev, fromSchool: schoolId, student: '', toSchool: '' }));
   };
+
+  const availableStudents = students.filter(student => student.schoolId === transferData.fromSchool);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -272,47 +187,36 @@ function Academies() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {currentAcademies.map((academy) => (
+                  {academies.map((academy) => (
                     <tr key={academy.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm">{academy.name}</td>
                       <td className="px-4 py-3 text-sm">{academy.location}</td>
                       <td className="px-4 py-3 text-sm">{academy.category}</td>
                       <td className="px-4 py-3 text-sm">{academy.students || '-'}</td>
-                      <td className="px-4 py-3">
-                        {renderActions(academy)}
+                      <td className="px-4 py-3 flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedAcademy(academy);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedAcademy(academy);
+                            setIsDeleteModalOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            <div className="flex items-center justify-end mt-4 space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border rounded-md"
-              >
-                Previous
-              </Button>
-
-              <div className="flex items-center">
-                <span className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md">
-                  {currentPage}
-                </span>
-              </div>
-
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border rounded-md"
-              >
-                Next
-              </Button>
             </div>
           </>
         );
@@ -352,14 +256,31 @@ function Academies() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
+                  {students.map((student) => (
                     <tr key={student.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm">{`${student.firstName} ${student.lastName}`}</td>
                       <td className="px-4 py-3 text-sm">{student.class}</td>
                       <td className="px-4 py-3 text-sm">{student.game}</td>
                       <td className="px-4 py-3 text-sm">{student.gender}</td>
-                      <td className="px-4 py-3">
-                        {/* Add student actions here */}
+                      <td className="px-4 py-3 flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setIsEditStudentModalOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setIsDeleteStudentModalOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -372,9 +293,83 @@ function Academies() {
       case 'transfer':
         return (
           <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-6">Transfer Students</h2>
-            {/* Add transfer logic and UI here */}
-            <p>Transfer functionality is under construction.</p>
+            <h2 className="text-xl font-semibold mb-6">Academy Student Transfer</h2>
+            
+            <form onSubmit={handleTransferSubmit} className="space-y-6">
+              {/* School From */}
+              <div>
+                <label className="block mb-1 text-sm font-medium">
+                  School From <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={transferData.fromSchool}
+                  onChange={(e) => handleFromSchoolChange(e.target.value)}
+                  required
+                  className="w-full border rounded-lg p-2"
+                >
+                  <option value="">Select School</option>
+                  {academies.map(academy => (
+                    <option key={academy.id} value={academy.id}>
+                      {academy.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Student Selection */}
+              <div>
+                <label className="block mb-1 text-sm font-medium">
+                  Student <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={transferData.student}
+                  onChange={(e) => setTransferData(prev => ({ ...prev, student: e.target.value }))}
+                  required
+                  disabled={!transferData.fromSchool}
+                  className="w-full border rounded-lg p-2"
+                >
+                  <option value="">Select Student</option>
+                  {availableStudents.map(student => (
+                    <option key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName} - {student.class}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* School To */}
+              <div>
+                <label className="block mb-1 text-sm font-medium">
+                  School To <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={transferData.toSchool}
+                  onChange={(e) => setTransferData(prev => ({ ...prev, toSchool: e.target.value }))}
+                  required
+                  disabled={!transferData.student}
+                  className="w-full border rounded-lg p-2"
+                >
+                  <option value="">Select School</option>
+                  {academies
+                    .filter(academy => academy.id !== transferData.fromSchool)
+                    .map(academy => (
+                      <option key={academy.id} value={academy.id}>
+                        {academy.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end pt-4">
+                <Button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Transfer Student
+                </Button>
+              </div>
+            </form>
           </div>
         );
 
@@ -483,7 +478,7 @@ function Academies() {
                   </button>
                 </div>
 
-                {renderAcademyDetails(selectedAcademy)}
+                {/* Render academy details here */}
 
                 <div className="flex justify-end mt-6 pt-4 border-t">
                   <Button
@@ -671,7 +666,7 @@ function Academies() {
                   </button>
                 </div>
 
-                {renderStudentDetails(selectedStudent)}
+                {/* Render student details here */}
 
                 <div className="flex justify-end mt-6 pt-4 border-t">
                   <Button onClick={() => setIsViewStudentModalOpen(false)}>

@@ -214,7 +214,7 @@ function Contracts() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onEdit={handleEditSubmit}
-        contractData={selectedContract}
+        contractData={selectedContract} // Pass the selected contract data to the modal
       />
 
       {/* View Modal */}

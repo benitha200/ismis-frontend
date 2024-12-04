@@ -302,18 +302,19 @@ const Dashboard = () => {
         {/* Upcoming Appointments Section */}
         <div className="bg-white p-6 rounded-lg shadow-lg">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Upcoming Appointments</h3>
+            <h3 className="text-lg font-semibold">Upcoming Events</h3>
             <Button size="sm" variant="secondary" onClick={() => navigate('/appointments')}>View All</Button>
           </div>
           {upcomingAppointments.length === 0 ? (
-            <p className="text-gray-500">No upcoming appointments.</p>
+            <p className="text-gray-500">No upcoming Events.</p>
           ) : (
             <ul>
               {upcomingAppointments.map((appointment, index) => (
                 <li key={index} className="flex justify-between items-center py-2">
                   <div>
                     <strong>{appointment.title}</strong>
-                    <p className="text-sm text-gray-500">{new Date(appointment.request_date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{new Date(appointment.request_date).toLocaleDateString()}</p><br />
+                    <p className="text-sm text-gray-500">{appointment.names}</p><br />
                   </div>
                   <span className="text-sm text-gray-600">{renderAppointmentStatus(appointment.status)}</span>
                 </li>

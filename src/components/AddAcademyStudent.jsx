@@ -1,133 +1,63 @@
-/* src/components/AddAcademyStudent.jsx */
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { X, Search } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 import axiosInstance from '../utils/axiosInstance';
+import data from '../data/data.json';
 
-function AddAcademyStudent({ isOpen, onClose, onAdd }) {
+function AddAcademyStudent({ isOpen, onClose, onAdd, studentData = null, isEditing = false }) {
   const { isDarkMode } = useTheme();
   const [formData, setFormData] = useState({
-    passportPicture: null,
+    photo_passport: null,
     firstName: '',
     lastName: '',
     gender: '',
     dateOfBirth: '',
     placeOfBirth: '',
     placeOfResidence: '',
-    identificationType: 'ID',
-    idNumber: '',
-    passportNumber: '',
-    passportExpiryDate: '',
+    idPassportNo: '',
     nationality: '',
     otherNationality: '',
-    parentsGuardian: '',
-    schoolName: '',
+    namesOfParentsGuardian: '',
+    nameOfSchoolAcademyTrainingCenter: '',
+    typeOfSchoolAcademyTrainingCenter: '',
     class: '',
-    gameType: '',
+    typeOfGame: '',
     contact: ''
   });
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [academies, setAcademies] = useState([]);
 
-  const genderOptions = ['Male', 'Female', 'Other'];
-  const nationalityOptions = [
-    'Rwandan', 'Kenyan', 'Ugandan', 'Tanzanian', 'Burundian', 
-    'Other (specify)'
-  ];
-  const classOptions = [
-    'P1', 'P2', 'P3', 'P4', 'P5', 'P6',
-    'S1', 'S2', 'S3', 'S4', 'S5', 'S6'
-  ];
-  const identificationTypes = ['ID', 'Passport', 'N/A'];
+  useEffect(() => {
+    const fetchAcademies = async () => {
+      try {
+        const response = await axiosInstance.get('/academies');
+        setAcademies(response.data);
+      } catch (error) {
+        console.error('Error fetching academies:', error);
+        toast.error('Failed to fetch academies');
+      }
+    };
 
-  const [schoolSearch, setSchoolSearch] = useState('');
-  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+    fetchAcademies();
+  }, []);
 
-  const [schools] = useState([
-    { id: 1, name: 'Lycee de Kigali', type: 'Excellence school' },
-    { id: 2, name: 'FAWE Girls School', type: 'Excellence school' },
-    { id: 3, name: 'College Saint Andre', type: 'Excellence school' },
-    { id: 4, name: 'Agaciro Football Center', type: 'F.Center' },
-    { id: 5, name: 'Alpha Sport', type: 'Youth Center' },
-    { id: 6, name: 'Amagaju Girls Academy', type: 'Centre' },
-    { id: 7, name: 'Amagaju Youth FC', type: 'Centre' },
-    { id: 8, name: 'Amaisero Vision Sport', type: 'F.Center' },
-    { id: 9, name: 'Amazero yubuzima', type: 'Youth Centre' }
-  ]);
-
-  const filteredSchools = schools.filter(school =>
-    school.name.toLowerCase().includes(schoolSearch.toLowerCase()) ||
-    school.type.toLowerCase().includes(schoolSearch.toLowerCase())
-  );
-
-  const handleSchoolSelect = (school) => {
-    setFormData(prev => ({
-      ...prev,
-      schoolName: school.name,
-      type: school.type
-    }));
-    setShowSchoolDropdown(false);
-    setSchoolSearch('');
-  };
-
-  const renderIdentificationFields = () => {
-    switch (formData.identificationType) {
-      case 'ID':
-        return (
-          <div>
-            <label className="block mb-1 text-sm font-medium">
-              ID Number <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={formData.idNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, idNumber: e.target.value }))}
-              required
-              placeholder="Enter ID number"
-            />
-          </div>
-        );
-      case 'Passport':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Passport Number <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="text"
-                value={formData.passportNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, passportNumber: e.target.value }))}
-                required
-                placeholder="Enter passport number"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Expiry Date <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="date"
-                value={formData.passportExpiryDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, passportExpiryDate: e.target.value }))}
-                required
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          </div>
-        );
-      default:
-        return null;
+  useEffect(() => {
+    if (studentData) {
+      setFormData(studentData);
+      if (studentData.photo_passport) {
+        setPreviewUrl(URL.createObjectURL(studentData.photo_passport));
+      }
     }
-  };
+  }, [studentData]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({ ...prev, passportPicture: file }));
+      setFormData(prev => ({ ...prev, photo_passport: file }));
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
@@ -144,296 +74,34 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
         throw new Error('Please fill in all required fields');
       }
 
-      if (formData.identificationType === 'ID' && !formData.idNumber) {
-        throw new Error('Please enter ID number');
-      }
+      const formDataToSend = new FormData();
+      Object.keys(formData).forEach(key => {
+        formDataToSend.append(key, formData[key]);
+      });
 
-      if (formData.identificationType === 'Passport') {
-        if (!formData.passportNumber) {
-          throw new Error('Please enter passport number');
-        }
-        if (!formData.passportExpiryDate) {
-          throw new Error('Please enter passport expiry date');
-        }
+      if (isEditing) {
         
-        const expiryDate = new Date(formData.passportExpiryDate);
-        if (expiryDate <= new Date()) {
-          throw new Error('Passport has expired');
-        }
+        await axiosInstance.put(`/academy-students/${formData.id}`, formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        toast.success('Student updated successfully');
+      } else {
+        await axiosInstance.post('/academy-students', formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        toast.success('Student added successfully');
       }
 
-      const age = new Date().getFullYear() - new Date(formData.dateOfBirth).getFullYear();
-      if (age < 12 || age > 17) {
-        throw new Error('Student must be between 12 and 17 years old');
-      }
-
-      await axiosInstance.post('/academy-students', formData);
       onAdd(formData);
       onClose();
-      toast.success('Student added successfully');
     } catch (error) {
       toast.error(error.message);
     }
   };
-
-  const renderSchoolField = () => (
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <label className="block mb-1 text-sm font-medium">
-          School/Academy Name <span className="text-red-500">*</span>
-        </label>
-        <div className="relative">
-          <div className="relative">
-            <Input
-              type="text"
-              value={schoolSearch}
-              onChange={(e) => {
-                setSchoolSearch(e.target.value);
-                setShowSchoolDropdown(true);
-              }}
-              onFocus={() => setShowSchoolDropdown(true)}
-              placeholder="Search school/academy..."
-              className="w-full pr-10"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-          
-          {formData.schoolName && !showSchoolDropdown && (
-            <div className="mt-2 p-2 bg-blue-50 rounded-md flex justify-between items-center">
-              <div>
-                <span className="font-medium">{formData.schoolName}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ 
-                  ...prev, 
-                  schoolName: ''
-                }))}
-                className="text-gray-500 hover:text-red-500"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {showSchoolDropdown && schoolSearch && (
-            <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border">
-              {filteredSchools.length > 0 ? (
-                filteredSchools.map(school => (
-                  <button
-                    key={school.id}
-                    type="button"
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                    onClick={() => handleSchoolSelect(school)}
-                  >
-                    <div className="font-medium">{school.name}</div>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-2 text-sm text-gray-500">
-                  No schools/academies found
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-      <div>
-        <label className="block mb-1 text-sm font-medium">Class</label>
-        <select
-          value={formData.class}
-          onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value }))}
-          className="w-full border rounded-lg p-2"
-        >
-          <option value="">Select Class</option>
-          {classOptions.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-
-  const [gameSearch, setGameSearch] = useState('');
-  const [showGameDropdown, setShowGameDropdown] = useState(false);
-
-  const allGameTypes = [
-    'Football', 'Basketball', 'Volleyball', 'Handball', 'Rugby', 'Cricket', 'Hockey', 'Baseball', 'Netball',
-    'Tennis', 'Table Tennis', 'Badminton', 'Swimming', 'Athletics', 'Boxing', 'Wrestling', 'Judo', 'Karate', 'Taekwondo',
-    'Squash', 'Pickleball', 'Kickboxing', 'Mixed Martial Arts', 'Cycling', 'Golf', 'Gymnastics', 'Weightlifting', 'Chess', 'Archery'
-  ].sort();
-
-  const filteredGames = allGameTypes.filter(game =>
-    game.toLowerCase().includes(gameSearch.toLowerCase())
-  );
-
-  const handleGameSelect = (game) => {
-    setFormData(prev => ({
-      ...prev,
-      gameType: game
-    }));
-    setShowGameDropdown(false);
-    setGameSearch('');
-  };
-
-  const renderGameTypeField = () => (
-    <div>
-      <label className="block mb-1 text-sm font-medium">Type of Game</label>
-      <div className="relative">
-        <div className="relative">
-          <Input
-            type="text"
-            value={gameSearch}
-            onChange={(e) => {
-              setGameSearch(e.target.value);
-              setShowGameDropdown(true);
-            }}
-            onFocus={() => setShowGameDropdown(true)}
-            placeholder="Search game type..."
-            className="w-full pr-10"
-          />
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        </div>
-        
-        {formData.gameType && !showGameDropdown && (
-          <div className="mt-2 p-2 bg-blue-50 rounded-md flex justify-between items-center">
-            <span className="font-medium">{formData.gameType}</span>
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, gameType: '' }))}
-              className="text-gray-500 hover:text-red-500"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        {showGameDropdown && gameSearch && (
-          <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border">
-            {filteredGames.length > 0 ? (
-              filteredGames.map(game => (
-                <button
-                  key={game}
-                  type="button"
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                  onClick={() => handleGameSelect(game)}
-                >
-                  <div className="font-medium">{game}</div>
-                </button>
-              ))
-            ) : (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                No games found
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const [nationalitySearch, setNationalitySearch] = useState('');
-  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
-
-  const allNationalities = [
-    'Afghan', 'Albanian', 'Algerian', 'American', 'Andorran', 'Angolan', 'Antiguan', 'Argentine',
-    'Armenian', 'Australian', 'Austrian', 'Azerbaijani', 'Bahamian', 'Bahraini', 'Bangladeshi',
-    'Barbadian', 'Belarusian', 'Belgian', 'Belizean', 'Beninese', 'Bhutanese', 'Bolivian',
-    'Bosnian', 'Botswanan', 'Brazilian', 'British', 'Bruneian', 'Bulgarian', 'Burkinabe',
-    'Burundian', 'Cambodian', 'Cameroonian', 'Canadian', 'Cape Verdean', 'Central African',
-    'Chadian', 'Chilean', 'Chinese', 'Colombian', 'Comoran', 'Congolese', 'Costa Rican',
-    'Croatian', 'Cuban', 'Cypriot', 'Czech', 'Danish', 'Djiboutian', 'Dominican', 'Dutch',
-    'East Timorese', 'Ecuadorean', 'Egyptian', 'Emirian', 'Equatorial Guinean', 'Eritrean',
-    'Estonian', 'Ethiopian', 'Fijian', 'Filipino', 'Finnish', 'French', 'Gabonese', 'Gambian',
-    'Georgian', 'German', 'Ghanaian', 'Greek', 'Grenadian', 'Guatemalan', 'Guinean',
-    'Guinea-Bissauan', 'Guyanese', 'Haitian', 'Honduran', 'Hungarian', 'Icelandic', 'Indian',
-    'Indonesian', 'Iranian', 'Iraqi', 'Irish', 'Israeli', 'Italian', 'Ivorian', 'Jamaican',
-    'Japanese', 'Jordanian', 'Kazakhstani', 'Kenyan', 'Kiribati', 'North Korean', 'South Korean',
-    'Kuwaiti', 'Kyrgyz', 'Laotian', 'Latvian', 'Lebanese', 'Lesothan', 'Liberian', 'Libyan',
-    'Liechtensteiner', 'Lithuanian', 'Luxembourgish', 'Macedonian', 'Malagasy', 'Malawian',
-    'Malaysian', 'Maldivian', 'Malian', 'Maltese', 'Marshallese', 'Mauritanian', 'Mauritian',
-    'Mexican', 'Micronesian', 'Moldovan', 'Monacan', 'Mongolian', 'Montenegrin', 'Moroccan',
-    'Mozambican', 'Namibian', 'Nauruan', 'Nepalese', 'New Zealander', 'Nicaraguan', 'Nigerian',
-    'Nigerien', 'Norwegian', 'Omani', 'Pakistani', 'Palauan', 'Palestinian', 'Panamanian',
-    'Papua New Guinean', 'Paraguayan', 'Peruvian', 'Polish', 'Portuguese', 'Qatari', 'Romanian',
-    'Russian', 'Rwandan', 'Saint Kitts and Nevis', 'Saint Lucian', 'Salvadoran', 'Samoan',
-    'San Marinese', 'Sao Tomean', 'Saudi', 'Senegalese', 'Serbian', 'Seychellois',
-    'Sierra Leonean', 'Singaporean', 'Slovak', 'Slovenian', 'Solomon Islander', 'Somali',
-    'South African', 'Spanish', 'Sri Lankan', 'Sudanese', 'Surinamese', 'Swazi', 'Swedish',
-    'Swiss', 'Syrian', 'Taiwanese', 'Tajik', 'Tanzanian', 'Thai', 'Togolese', 'Tongan',
-    'Trinidadian', 'Tunisian', 'Turkish', 'Turkmen', 'Tuvaluan', 'Ugandan', 'Ukrainian',
-    'Uruguayan', 'Uzbekistani', 'Vanuatuan', 'Vatican', 'Venezuelan', 'Vietnamese', 'Yemeni',
-    'Zambian', 'Zimbabwean'
-  ].sort();
-
-  const filteredNationalities = allNationalities.filter(nationality =>
-    nationality.toLowerCase().includes(nationalitySearch.toLowerCase())
-  );
-
-  const handleNationalitySelect = (nationality) => {
-    setFormData(prev => ({
-      ...prev,
-      nationality
-    }));
-    setShowNationalityDropdown(false);
-    setNationalitySearch('');
-  };
-
-  const renderNationalityField = () => (
-    <div>
-      <label className="block mb-1 text-sm font-medium">Nationality</label>
-      <div className="relative">
-        <div className="relative">
-          <Input
-            type="text"
-            value={nationalitySearch}
-            onChange={(e) => {
-              setNationalitySearch(e.target.value);
-              setShowNationalityDropdown(true);
-            }}
-            onFocus={() => setShowNationalityDropdown(true)}
-            placeholder="Search nationality..."
-            className="w-full pr-10"
-          />
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        </div>
-        
-        {formData.nationality && !showNationalityDropdown && (
-          <div className="mt-2 p-2 bg-blue-50 rounded-md flex justify-between items-center">
-            <span className="font-medium">{formData.nationality}</span>
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, nationality: '' }))}
-              className="text-gray-500 hover:text-red-500"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        {showNationalityDropdown && nationalitySearch && (
-          <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto border">
-            {filteredNationalities.length > 0 ? (
-              filteredNationalities.map(nationality => (
-                <button
-                  key={nationality}
-                  type="button"
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                  onClick={() => handleNationalitySelect(nationality)}
-                >
-                  <div className="font-medium">{nationality}</div>
-                </button>
-              ))
-            ) : (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                No nationalities found
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -457,7 +125,7 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
             } p-6 text-left align-middle shadow-xl transition-all`}>
               <div className="flex justify-between items-center mb-6">
                 <Dialog.Title className="text-xl font-bold">
-                  Add Academy Student
+                  {isEditing ? 'Edit Academy Student' : 'Add Academy Student'}
                 </Dialog.Title>
                 <button
                   onClick={onClose}
@@ -469,7 +137,7 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block mb-1 text-sm font-medium">Passport Picture</label>
+                  <label className="block mb-1 text-sm font-medium">Photo Passport</label>
                   <div className="flex items-center space-x-4">
                     {previewUrl && (
                       <img 
@@ -491,7 +159,7 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                           hover:file:bg-blue-100"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        {formData.passportPicture ? formData.passportPicture.name : 'No file chosen'}
+                        {formData.photo_passport ? formData.photo_passport.name : 'No file chosen'}
                       </p>
                     </div>
                   </div>
@@ -536,7 +204,7 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                       className="w-full border rounded-lg p-2"
                     >
                       <option value="">Select Gender</option>
-                      {genderOptions.map(option => (
+                      {data.genderOptions.map(option => (
                         <option key={option} value={option}>{option}</option>
                       ))}
                     </select>
@@ -565,62 +233,126 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 text-sm font-medium">Place of Residence</label>
+                    <label className="block mb-1 text-sm font-medium">
+                      Place of Residence <span className="text-red-500">*</span>
+                    </label>
                     <Input
                       type="text"
                       value={formData.placeOfResidence}
                       onChange={(e) => setFormData(prev => ({ ...prev, placeOfResidence: e.target.value }))}
+                      required
                       placeholder="Enter place of residence"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium">
-                      Identification Type <span className="text-red-500">*</span>
+                      ID/Passport No <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={formData.identificationType}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        identificationType: e.target.value,
-                        idNumber: '',
-                        passportNumber: '',
-                        passportExpiryDate: ''
-                      }))}
+                    <Input
+                      type="text"
+                      value={formData.idPassportNo}
+                      onChange={(e) => setFormData(prev => ({ ...prev, idPassportNo: e.target.value }))}
                       required
-                      className="w-full border rounded-lg p-2"
-                    >
-                      {identificationTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
+                      placeholder="Enter ID or Passport number"
+                    />
                   </div>
-
-                  {renderIdentificationFields()}
+                  <div>
+                    <label className="block mb-1 text-sm font-medium">
+                      Nationality <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.nationality}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nationality: e.target.value }))}
+                      required
+                      placeholder="Enter nationality"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {renderNationalityField()}
+                  <div>
+                    <label className="block mb-1 text-sm font-medium">Other Nationality</label>
+                    <Input
+                      type="text"
+                      value={formData.otherNationality}
+                      onChange={(e) => setFormData(prev => ({ ...prev, otherNationality: e.target.value }))}
+                      placeholder="Enter other nationality"
+                    />
+                  </div>
                   <div>
                     <label className="block mb-1 text-sm font-medium">
                       Names of Parents/Guardian <span className="text-red-500">*</span>
                     </label>
                     <Input
                       type="text"
-                      value={formData.parentsGuardian}
-                      onChange={(e) => setFormData(prev => ({ ...prev, parentsGuardian: e.target.value }))}
+                      value={formData.namesOfParentsGuardian}
+                      onChange={(e) => setFormData(prev => ({ ...prev, namesOfParentsGuardian: e.target.value }))}
                       required
                       placeholder="Enter parent/guardian names"
                     />
                   </div>
                 </div>
 
-                {renderSchoolField()}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 text-sm font-medium">
+                      School/Academy Name <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.nameOfSchoolAcademyTrainingCenter}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nameOfSchoolAcademyTrainingCenter: e.target.value }))}
+                      required
+                      className="w-full border rounded-lg p-2"
+                    >
+                      <option value="">Select School/Academy</option>
+                      {academies.map(academy => (
+                        <option key={academy.id} value={academy.name}>{academy.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium">
+                      Type of School/Academy <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.typeOfSchoolAcademyTrainingCenter}
+                      onChange={(e) => setFormData(prev => ({ ...prev, typeOfSchoolAcademyTrainingCenter: e.target.value }))}
+                      required
+                      placeholder="Enter type of school/academy"
+                    />
+                  </div>
+                </div>
 
-                <div>
-                  {renderGameTypeField()}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 text-sm font-medium">
+                      Class <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.class}
+                      onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value }))}
+                      required
+                      placeholder="Enter class"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium">
+                      Type of Game <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.typeOfGame}
+                      onChange={(e) => setFormData(prev => ({ ...prev, typeOfGame: e.target.value }))}
+                      required
+                      placeholder="Enter type of game"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -645,7 +377,7 @@ function AddAcademyStudent({ isOpen, onClose, onAdd }) {
                     type="submit"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    Add Student
+                    {isEditing ? 'Update Student' : 'Add Student'}
                   </Button>
                 </div>
               </form>
